@@ -120,6 +120,9 @@ const anchors: AnchorPoint[] = [
 ]
 
 const ranges = [
+  { label: 'Seit 1950', year: 1950 },
+  { label: 'Seit 1970', year: 1970 },
+  { label: 'Seit 1991', year: 1991 },
   { label: 'Seit 2010', year: 2010 },
   { label: 'Seit 2020', year: 2020 },
 ]
@@ -228,6 +231,8 @@ function App() {
   const landPower = indexFrom(heroLatest.wagesNominal / heroLatest.land, heroBase.wagesNominal / heroBase.land) - 100
   const currentPower = selected.purchasingPower[selected.purchasingPower.length - 1]
   const productivityGap = selected.gap[selected.gap.length - 1]['Produktivität minus Reallohn']
+  const isLongRange = startYear < 2010
+  const isPreReunificationRange = startYear < 1991
   const salaryExample = 10000
   const salaryToday = salaryExample * (selected.latest.wagesNominal / selected.base.wagesNominal)
   const sameBasketSalary = salaryExample * (selected.latest.consumerPrices / selected.base.consumerPrices)
@@ -373,9 +378,10 @@ function App() {
           <p className="eyebrow">Zeitspanne wählen</p>
           <h2>Was passiert mit dem Gehalt?</h2>
           <p>
-            Der interaktive Vergleich startet bewusst erst 2010. Für ältere Jahre
-            sind Lohn-, Immobilien- und Baulandreihen methodisch nicht sauber genug
-            vergleichbar, um sie in eine einzige harte Grafik zu legen.
+            Die jüngeren Zeiträume sind am saubersten vergleichbar. Ältere Starts
+            sind wieder auswählbar, aber als Langfrist-Orientierung: Sie zeigen die
+            Richtung der Verschiebung, nicht den exakten Preis eines konkreten Hauses
+            in einem konkreten Ort.
           </p>
         </div>
 
@@ -391,6 +397,19 @@ function App() {
             </button>
           ))}
         </div>
+
+        {isLongRange && (
+          <div className="range-disclaimer" role="note">
+            <strong>Disclaimer für {startYear} bis 2024:</strong>
+            <span>
+              Dieser Langfristmodus mischt amtliche Preis- und Lohnreihen mit Proxy-
+              und Indexreihen für Wohnen, Bauland, Produktivität und Vermögen.
+              {isPreReunificationRange
+                ? ' Werte vor 1991 sind zusätzlich als west-/gesamtdeutsche Annäherung zu lesen.'
+                : ' Ab 1991 ist die Vergleichbarkeit besser, aber bei Wohnen und Bauland weiterhin nicht so hart wie ab 2010.'}
+            </span>
+          </div>
+        )}
 
         <div className="summary-grid">
           <article>
@@ -642,7 +661,7 @@ function App() {
             'Ein steigender Nominallohn kann real wenig bringen, wenn Preise gleichzeitig steigen.',
             'Wohnungs- und Bauland-Kaufkraft rechnet Lohn gegen Vermögenspreise, nicht gegen Alltagspreise.',
             'Produktivität erklärt nicht automatisch Löhne, zeigt aber den verteilbaren Output pro Arbeitsstunde.',
-            'Die interaktiven Zahlen starten 2010, weil Immobilien- und Baulandreihen davor nicht sauber vergleichbar sind.',
+            'Zeitreihen ab 2010 sind am belastbarsten; ältere Starts sind als Langfrist-Orientierung mit Methodenbruch zu lesen.',
           ].map((item) => (
             <div className="method-item" key={item}>
               <Check size={18} aria-hidden="true" />
@@ -653,8 +672,9 @@ function App() {
         <p className="fineprint">
           Datenstand: 04.06.2026. Nach kritischer Prüfung sind die Lohn- und
           Verbraucherpreisdaten eng an Destatis-Jahresraten ausgerichtet. Wohnen
-          nutzt den vdp-Immobilienpreisindex; Bauland bleibt wegen eingeschränkter
-          Vergleichbarkeit der Kaufwertstatistik eine vorsichtige Näherung. Für
+          nutzt ab 2010 den vdp-Immobilienpreisindex; ältere Wohn- und Baulandwerte
+          sind wegen eingeschränkter Vergleichbarkeit der Reihen vorsichtige
+          Näherungen. Für
           wissenschaftliche oder journalistische Verwendung müssen die verlinkten
           Originaltabellen direkt aktualisiert und dokumentiert werden.
         </p>

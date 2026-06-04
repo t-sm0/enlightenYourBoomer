@@ -452,6 +452,23 @@ h3 {
   background: #151817;
 }
 
+.range-disclaimer {
+  display: grid;
+  grid-template-columns: minmax(160px, 0.36fr) 1fr;
+  gap: 10px 16px;
+  margin: -4px 0 18px;
+  padding: 14px 16px;
+  border: 1px solid #d9b775;
+  border-radius: 8px;
+  background: #fff7e4;
+  color: #5c4631;
+  line-height: 1.5;
+}
+
+.range-disclaimer strong {
+  color: #151817;
+}
+
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -773,6 +790,10 @@ h3 {
   .example-panel,
   .objection-panel,
   .takeaway-band {
+    grid-template-columns: 1fr;
+  }
+
+  .range-disclaimer {
     grid-template-columns: 1fr;
   }
 
