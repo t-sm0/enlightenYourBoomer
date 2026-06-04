@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Area,
   AreaChart,
@@ -170,10 +170,26 @@ const yearlyData: EconomicPoint[] = anchors.flatMap((anchor, index) => {
 const formatIndex = (value: number) =>
   value.toLocaleString('de-DE', { maximumFractionDigits: 1 })
 
+const formatEuro = (value: number) =>
+  value.toLocaleString('de-DE', {
+    maximumFractionDigits: 0,
+    style: 'currency',
+    currency: 'EUR',
+  })
+
 const indexFrom = (value: number, base: number) => (value / base) * 100
+const paddedIndexDomain = ['dataMin - 8', 'dataMax + 8'] as const
 
 function App() {
   const [startYear, setStartYear] = useState(2010)
+
+  useEffect(() => {
+    if (!window.location.hash) return
+
+    window.requestAnimationFrame(() => {
+      document.querySelector(window.location.hash)?.scrollIntoView()
+    })
+  }, [])
 
   const selected = useMemo(() => {
     const range = yearlyData.filter((point) => point.year >= startYear)
@@ -216,6 +232,12 @@ function App() {
   const landPower = indexFrom(heroLatest.wagesNominal / heroLatest.land, heroBase.wagesNominal / heroBase.land) - 100
   const currentPower = selected.purchasingPower[selected.purchasingPower.length - 1]
   const productivityGap = selected.gap[selected.gap.length - 1]['Produktivität minus Reallohn']
+  const salaryExample = 10000
+  const salaryToday = salaryExample * (selected.latest.wagesNominal / selected.base.wagesNominal)
+  const sameBasketSalary = salaryExample * (selected.latest.consumerPrices / selected.base.consumerPrices)
+  const sameRentSalary = salaryExample * (selected.latest.rents / selected.base.rents)
+  const sameHomeSalary = salaryExample * (selected.latest.homes / selected.base.homes)
+  const sameLandSalary = salaryExample * (selected.latest.land / selected.base.land)
 
   return (
     <main>
@@ -293,6 +315,24 @@ function App() {
             </p>
           </div>
         </div>
+
+        <div className="story-rail" aria-label="Kurz erklärt">
+          <article>
+            <span>1</span>
+            <strong>Nominal klingt gut</strong>
+            <p>Der Betrag auf dem Gehaltszettel wächst. Das ist die Zahl, die man sofort sieht.</p>
+          </article>
+          <article>
+            <span>2</span>
+            <strong>Real zählt Kaufkraft</strong>
+            <p>Erst nach Abzug der Preissteigerung sieht man, ob mehr Alltag übrig bleibt.</p>
+          </article>
+          <article>
+            <span>3</span>
+            <strong>Wohnen zieht davon</strong>
+            <p>Immobilien und Bauland sind Vermögenspreise. Sie können viel schneller steigen als Löhne.</p>
+          </article>
+        </div>
       </section>
 
       <section className="section" id="kaufkraft">
@@ -345,12 +385,45 @@ function App() {
           </article>
         </div>
 
+        <div className="example-panel">
+          <div className="example-copy">
+            <p className="eyebrow">In Euro übersetzt</p>
+            <h3>Aus {formatEuro(salaryExample)} Startgehalt würden nach Lohntrend {formatEuro(salaryToday)}.</h3>
+            <p>
+              Für denselben Lebensstandard reicht das nicht automatisch. Je nachdem,
+              was man kaufen will, müsste das Gehalt anders stark steigen.
+            </p>
+          </div>
+          <div className="example-grid">
+            <article>
+              <span>Gleicher Warenkorb</span>
+              <strong>{formatEuro(sameBasketSalary)}</strong>
+              <small>{formatEuro(salaryToday - sameBasketSalary)} Abstand zum Lohntrend</small>
+            </article>
+            <article>
+              <span>Gleiche Mietbelastung</span>
+              <strong>{formatEuro(sameRentSalary)}</strong>
+              <small>{formatEuro(salaryToday - sameRentSalary)} Abstand zum Lohntrend</small>
+            </article>
+            <article className="warning">
+              <span>Gleiche Wohnungskaufkraft</span>
+              <strong>{formatEuro(sameHomeSalary)}</strong>
+              <small>{formatEuro(salaryToday - sameHomeSalary)} Abstand zum Lohntrend</small>
+            </article>
+            <article className="warning">
+              <span>Gleiche Bauland-Kaufkraft</span>
+              <strong>{formatEuro(sameLandSalary)}</strong>
+              <small>{formatEuro(salaryToday - sameLandSalary)} Abstand zum Lohntrend</small>
+            </article>
+          </div>
+        </div>
+
         <div className="chart-shell">
           <ResponsiveContainer width="100%" height={430}>
             <LineChart data={selected.indexed} margin={{ top: 18, right: 16, bottom: 8, left: 0 }}>
               <CartesianGrid strokeDasharray="4 8" vertical={false} />
               <XAxis dataKey="year" tickMargin={12} minTickGap={18} />
-              <YAxis tickFormatter={(value) => `${value}`} width={42} />
+              <YAxis domain={paddedIndexDomain} tickFormatter={(value) => `${value}`} width={42} />
               <Tooltip formatter={(value, name) => [`${formatIndex(Number(value))}`, name]} labelFormatter={(label) => `Jahr ${label}`} />
               <Legend />
               {lines.map((line) => (
@@ -368,6 +441,11 @@ function App() {
             </LineChart>
           </ResponsiveContainer>
         </div>
+        <p className="chart-note">
+          Lesart: Die Linien sind bewusst auf denselben Startwert gesetzt. Das zeigt
+          Beziehungen, ersetzt aber keine absolute Einkommensverteilung nach Beruf,
+          Region oder Haushaltstyp.
+        </p>
       </section>
 
       <section className="section split">
@@ -385,7 +463,7 @@ function App() {
             <LineChart data={selected.purchasingPower} margin={{ top: 18, right: 16, left: 0, bottom: 8 }}>
               <CartesianGrid strokeDasharray="4 8" vertical={false} />
               <XAxis dataKey="year" tickMargin={12} minTickGap={18} />
-              <YAxis width={42} tickFormatter={(value) => `${value}`} />
+              <YAxis domain={paddedIndexDomain} width={42} tickFormatter={(value) => `${value}`} />
               <ReferenceLine y={100} stroke="#151817" strokeDasharray="5 5" />
               <Tooltip formatter={(value, name) => [`${formatIndex(Number(value))}`, name]} />
               <Legend />
@@ -396,6 +474,10 @@ function App() {
             </LineChart>
           </ResponsiveContainer>
         </div>
+        <p className="chart-note">
+          Unter 100 heißt nicht „alles ist unleistbar“, sondern: Der Lohn ist langsamer
+          gestiegen als dieser konkrete Preisindex.
+        </p>
       </section>
 
       <section className="section" id="produktivitaet">
@@ -413,7 +495,7 @@ function App() {
             <AreaChart data={selected.gap} margin={{ top: 18, right: 16, left: 0, bottom: 8 }}>
               <CartesianGrid strokeDasharray="4 8" vertical={false} />
               <XAxis dataKey="year" tickMargin={12} minTickGap={18} />
-              <YAxis width={46} />
+              <YAxis domain={paddedIndexDomain} width={46} />
               <Tooltip formatter={(value, name) => [`${formatIndex(Number(value))} Punkte`, name]} />
               <Legend />
               <ReferenceLine y={0} stroke="#151817" strokeDasharray="5 5" />
@@ -421,6 +503,14 @@ function App() {
               <Area type="monotone" dataKey="Wohnimmobilien minus Lohn" stroke="#d78114" fill="#d78114" fillOpacity={0.18} strokeWidth={2} />
             </AreaChart>
           </ResponsiveContainer>
+        </div>
+        <div className="takeaway-band">
+          <strong>Der faire Kern der Aussage:</strong>
+          <span>
+            Nicht jede Produktivitätssteigerung wird automatisch Lohn. Aber wenn reale
+            Löhne kaum wachsen, während Output und Vermögenspreise steigen, verschiebt
+            sich Wohlstand weg von reiner Arbeit hin zu Besitz und Kapital.
+          </span>
         </div>
       </section>
 
@@ -440,8 +530,8 @@ function App() {
             <LineChart data={selected.range} margin={{ top: 18, right: 16, left: 0, bottom: 8 }}>
               <CartesianGrid strokeDasharray="4 8" vertical={false} />
               <XAxis dataKey="year" tickMargin={12} minTickGap={18} />
-              <YAxis yAxisId="left" width={48} tickFormatter={(value) => `${value}%`} />
-              <YAxis yAxisId="right" orientation="right" width={56} tickFormatter={(value) => `${value}%`} />
+              <YAxis yAxisId="left" domain={[58, 76]} width={48} tickFormatter={(value) => `${value}%`} />
+              <YAxis yAxisId="right" orientation="right" domain={[180, 700]} width={56} tickFormatter={(value) => `${value}%`} />
               <Tooltip formatter={(value, name) => [`${formatIndex(Number(value))}%`, name]} />
               <Legend />
               <Line yAxisId="left" type="monotone" dataKey="laborShare" name="Arbeitseinkommensanteil" stroke="#176b73" strokeWidth={3} dot={false} />
@@ -449,6 +539,10 @@ function App() {
             </LineChart>
           </ResponsiveContainer>
         </div>
+        <p className="chart-note">
+          Diese Ebene ist Verteilungskontext. Sie erklärt, warum steigende Assetpreise
+          für Menschen ohne Vermögen anders wirken als für Eigentümer.
+        </p>
       </section>
 
       <section className="section">
