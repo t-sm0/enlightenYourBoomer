@@ -504,6 +504,61 @@ h3 {
   font-size: 0.9rem;
 }
 
+.result-explainer {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.78fr) minmax(0, 1.22fr);
+  gap: 18px;
+  margin: 18px 0;
+  padding: clamp(18px, 3vw, 28px);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #151817;
+  color: #fff;
+  box-shadow: var(--shadow);
+}
+
+.result-explainer h3 {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(1.45rem, 3vw, 2.1rem);
+}
+
+.result-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.result-grid article {
+  min-height: 230px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.result-grid span {
+  color: #f6d36f;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.result-grid strong {
+  color: #fff;
+  font-size: clamp(1.15rem, 2.2vw, 1.55rem);
+  line-height: 1.15;
+}
+
+.result-grid p {
+  margin: 0;
+  color: #dce2df;
+  line-height: 1.55;
+}
+
 .example-panel {
   display: grid;
   grid-template-columns: minmax(0, 0.76fr) minmax(0, 1.24fr);
@@ -789,6 +844,7 @@ h3 {
 
   .example-panel,
   .objection-panel,
+  .result-explainer,
   .takeaway-band {
     grid-template-columns: 1fr;
   }
@@ -798,6 +854,10 @@ h3 {
   }
 
   .answer-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .result-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -826,6 +886,11 @@ h3 {
 
   .example-grid {
     grid-template-columns: 1fr;
+  }
+
+  .result-explainer {
+    margin-inline: -4px;
+    padding: 16px 12px;
   }
 
   .quote-card,

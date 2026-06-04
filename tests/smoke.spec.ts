@@ -6,6 +6,7 @@ test('renders the dashboard without horizontal overflow', async ({ page }) => {
   await expect(page.getByRole('heading', { name: /Früher sparen. Heute reicht sparen oft nicht mehr/ })).toBeVisible()
   await expect(page.getByText(/Wir konnten früher auch nicht in den Urlaub fahren/)).toBeVisible()
   await expect(page.getByRole('heading', { name: /Was passiert mit dem Gehalt/ })).toBeVisible()
+  await expect(page.getByText('Ergebnis lesen')).toBeVisible()
   await expect(page.getByRole('heading', { name: /Produktiver, aber nicht entsprechend kaufkräftiger/ })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Quellen' })).toBeVisible()
 

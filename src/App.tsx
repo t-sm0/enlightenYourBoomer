@@ -169,6 +169,12 @@ const yearlyData: EconomicPoint[] = anchors.flatMap((anchor, index) => {
 const formatIndex = (value: number) =>
   value.toLocaleString('de-DE', { maximumFractionDigits: 1 })
 
+const formatSignedPercent = (value: number) =>
+  `${value >= 0 ? '+' : ''}${formatIndex(value)}%`
+
+const formatSignedPoints = (value: number) =>
+  `${value >= 0 ? '+' : ''}${formatIndex(value)} Pkt.`
+
 const formatEuro = (value: number) =>
   value.toLocaleString('de-DE', {
     maximumFractionDigits: 0,
@@ -231,6 +237,44 @@ function App() {
   const landPower = indexFrom(heroLatest.wagesNominal / heroLatest.land, heroBase.wagesNominal / heroBase.land) - 100
   const currentPower = selected.purchasingPower[selected.purchasingPower.length - 1]
   const productivityGap = selected.gap[selected.gap.length - 1]['Produktivität minus Reallohn']
+  const wageChange = indexFrom(selected.latest.wagesNominal, selected.base.wagesNominal) - 100
+  const realWageChange = indexFrom(selected.latest.realWage, selected.base.realWage) - 100
+  const consumerPriceChange = indexFrom(selected.latest.consumerPrices, selected.base.consumerPrices) - 100
+  const homeChange = indexFrom(selected.latest.homes, selected.base.homes) - 100
+  const landChange = indexFrom(selected.latest.land, selected.base.land) - 100
+  const homeVsWageGap = homeChange - wageChange
+  const landVsWageGap = landChange - wageChange
+  const basketPower = currentPower.Warenkorb - 100
+  const rentPower = currentPower.Miete - 100
+  const homePower = currentPower.Wohnung - 100
+  const landAssetPower = currentPower.Bauland - 100
+  const selectedRanking = [
+    { label: 'Bauland', value: landChange },
+    ...lines.map((line) => ({
+      label: line.label,
+      value: indexFrom(selected.latest[line.key], selected.base[line.key]) - 100,
+    })),
+  ].sort((a, b) => b.value - a.value)
+  const topMover = selectedRanking[0]
+  const isNominalTopMover = topMover.label === 'Bruttolohn nominal'
+  const resultHeadline =
+    startYear < 1970
+      ? 'Die sehr lange Kurve zeigt den Nachkriegs-Aufholprozess. Für die heutige Einstiegshürde ist vor allem der Blick ab 1991 und ab 2010 entscheidend.'
+      : startYear < 2010
+        ? 'Die Langfristkurve zeigt: Alltag, Produktivität und Vermögenspreise laufen nicht im selben Takt. Besonders Bauland wird relativ zum Lohn knapper.'
+        : startYear < 2020
+          ? 'Seit 2010 wird sichtbar: Reallohn steigt nur wenig, Wohnen und Bauland laufen dem Lohn davon.'
+          : 'Seit 2020 ist das Bild gemischt: Immobilienpreise korrigieren zeitweise, aber Inflation und Bauland drücken weiter.'
+  const assetPressureSentence =
+    homePower < 0 || landAssetPower < 0
+      ? 'Das ist der Punkt, an dem Sparen weniger Vermögenszugang kauft.'
+      : 'In diesem langen Fenster sieht man auch frühere Aufholphasen; deshalb ist der jüngere Vergleich zusätzlich wichtig.'
+  const assetPowerSentence =
+    homePower < 0 && landAssetPower < 0
+      ? 'Beim Einstieg in Wohneigentum zählt aber Lohn geteilt durch Kaufpreis: Dort ist die Kaufkraft deutlich schwächer.'
+      : homePower < 0 || landAssetPower < 0
+        ? 'Beim Einstieg in Vermögen ist das Bild gemischt: Eine Linie hält mit, die andere läuft dem Lohn davon.'
+        : 'Im sehr langen Fenster sieht man den Nachkriegs-Aufholprozess. Für heutige Einstiegshürden sind deshalb die jüngeren Zeiträume aussagekräftiger.'
   const isLongRange = startYear < 2010
   const isPreReunificationRange = startYear < 1991
   const salaryExample = 10000
@@ -415,27 +459,69 @@ function App() {
           <article>
             <Banknote size={22} aria-hidden="true" />
             <span>Reallohn</span>
-            <strong>{formatIndex(indexFrom(selected.latest.realWage, selected.base.realWage) - 100)}%</strong>
+            <strong>{formatSignedPercent(realWageChange)}</strong>
             <p>seit {startYear}</p>
           </article>
           <article>
             <Home size={22} aria-hidden="true" />
             <span>Miet-Kaufkraft</span>
-            <strong>{formatIndex(currentPower.Miete - 100)}%</strong>
+            <strong>{formatSignedPercent(rentPower)}</strong>
             <p>Lohn geteilt durch Mietindex</p>
           </article>
           <article>
             <Building2 size={22} aria-hidden="true" />
             <span>Wohnungs-Kaufkraft</span>
-            <strong>{formatIndex(currentPower.Wohnung - 100)}%</strong>
+            <strong>{formatSignedPercent(homePower)}</strong>
             <p>Lohn geteilt durch Kaufpreise</p>
           </article>
           <article>
             <TrendingUp size={22} aria-hidden="true" />
             <span>Produktivitätslücke</span>
-            <strong>+{formatIndex(productivityGap)} Pkt.</strong>
+            <strong>{formatSignedPoints(productivityGap)}</strong>
             <p>Produktivität über Reallohn</p>
           </article>
+        </div>
+
+        <div className="result-explainer" aria-label="Erklärung der Ergebnisgrafiken">
+          <div>
+            <p className="eyebrow">Ergebnis lesen</p>
+            <h3>{resultHeadline}</h3>
+          </div>
+          <div className="result-grid">
+            <article>
+              <span>1. Lohn gegen Inflation</span>
+              <strong>
+                Nominal {formatSignedPercent(wageChange)}, real {formatSignedPercent(realWageChange)}
+              </strong>
+              <p>
+                Der Bruttolohn ist seit {startYear} deutlich gestiegen. Entscheidend
+                für Alltag und Sparfähigkeit ist aber der Reallohn: Nach
+                Verbraucherpreisen ({formatSignedPercent(consumerPriceChange)}) bleiben
+                davon {formatSignedPercent(realWageChange)}.
+              </p>
+            </article>
+            <article>
+              <span>2. Alltag gegen Vermögensaufbau</span>
+              <strong>
+                Wohnung {formatSignedPercent(homePower)}, Bauland {formatSignedPercent(landAssetPower)}
+              </strong>
+              <p>
+                Für den Warenkorb liegt die Lohn-Kaufkraft bei {formatSignedPercent(basketPower)}.
+                Gegenüber Mieten sind es {formatSignedPercent(rentPower)}. {assetPowerSentence}
+              </p>
+            </article>
+            <article>
+              <span>3. Warum Sparen anders wirkt</span>
+              <strong>{topMover.label} läuft vorne</strong>
+              <p>
+                Die Rangliste zeigt: {topMover.label} stieg seit {startYear} am
+                stärksten. {isNominalTopMover
+                  ? 'Wenn der Nominallohn vorne liegt, ist das kein Wohlstandsbeweis: Inflation und Preisniveau stecken darin.'
+                  : `Wohnimmobilien liegen ${formatSignedPoints(homeVsWageGap)} und Bauland ${formatSignedPoints(landVsWageGap)} relativ zum Nominallohn.`}
+                {' '}{assetPressureSentence}
+              </p>
+            </article>
+          </div>
         </div>
 
         <div className="example-panel">
@@ -497,7 +583,8 @@ function App() {
         <p className="chart-note">
           Lesart: Die Linien sind bewusst auf denselben Startwert gesetzt. Das zeigt
           Beziehungen, ersetzt aber keine absolute Einkommensverteilung nach Beruf,
-          Region oder Haushaltstyp.
+          Region oder Haushaltstyp. In langen Zeiträumen dominiert der Nominallohn
+          optisch stark; für Lebensstandard ist deshalb die Reallohnlinie wichtiger.
         </p>
       </section>
 
@@ -529,7 +616,9 @@ function App() {
         </div>
         <p className="chart-note">
           Unter 100 heißt nicht „alles ist unleistbar“, sondern: Der Lohn ist langsamer
-          gestiegen als dieser konkrete Preisindex.
+          gestiegen als dieser konkrete Preisindex. Über 100 heißt: Gegenüber diesem
+          Preisindex hat der Lohn aufgeholt. Der Knackpunkt ist, dass Alltagspreise,
+          Mieten und Vermögenspreise nicht gleich laufen.
         </p>
       </section>
 
