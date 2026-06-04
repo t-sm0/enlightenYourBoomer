@@ -1,4 +1,4 @@
-import { type ReactNode, lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { type ReactNode, lazy, startTransition, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowUpRight,
   Banknote,
@@ -191,8 +191,6 @@ function LazyChart({ children, className = 'chart-shell', height }: LazyChartPro
   const [shouldRender, setShouldRender] = useState(false)
 
   useEffect(() => {
-    if (shouldRender) return
-
     const container = containerRef.current
     if (!container) return
 
@@ -203,17 +201,14 @@ function LazyChart({ children, className = 'chart-shell', height }: LazyChartPro
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (!entry.isIntersecting) return
-
-        setShouldRender(true)
-        observer.disconnect()
+        setShouldRender(entry.isIntersecting)
       },
-      { rootMargin: '520px 0px' },
+      { rootMargin: '360px 0px' },
     )
 
     observer.observe(container)
     return () => observer.disconnect()
-  }, [shouldRender])
+  }, [])
 
   return (
     <div ref={containerRef} className={className} style={{ minHeight: height }}>
@@ -352,7 +347,7 @@ function App() {
               key={range.year}
               aria-label={range.label}
               className={range.year === startYear ? 'active' : ''}
-              onClick={() => setStartYear(range.year)}
+              onClick={() => startTransition(() => setStartYear(range.year))}
             >
               <span className="range-full">{range.label}</span>
               <span className="range-short">{range.year}</span>
@@ -610,7 +605,7 @@ function App() {
           </div>
         </div>
 
-        <LazyChart height={430}>
+        <LazyChart height={340}>
           {() => (
             <EconomicChart
               data={selected.indexed}
@@ -638,7 +633,7 @@ function App() {
             Miete, Wohnung oder Bauland als zu Beginn der gewählten Zeitspanne.
           </p>
         </div>
-        <LazyChart className="chart-shell compact" height={370}>
+        <LazyChart className="chart-shell compact" height={320}>
           {() => (
             <EconomicChart
               data={selected.purchasingPower}
@@ -665,7 +660,7 @@ function App() {
             Verteilungsfrage: Wer bekommt den zusätzlichen Output?
           </p>
         </div>
-        <LazyChart height={360}>
+        <LazyChart height={320}>
           {() => (
             <EconomicChart
               data={selected.gap}
@@ -695,7 +690,7 @@ function App() {
             besitzt, trifft steigendes Wohnen und Bauland härter.
           </p>
         </div>
-        <LazyChart className="chart-shell compact" height={370}>
+        <LazyChart className="chart-shell compact" height={320}>
           {() => (
             <EconomicChart
               data={selected.range}
@@ -715,7 +710,7 @@ function App() {
           <p className="eyebrow">Rangliste</p>
           <h2>Was ist seit {startYear} schneller gestiegen?</h2>
         </div>
-        <LazyChart height={360}>
+        <LazyChart height={320}>
           {() => (
             <EconomicChart
               data={rankingBars}
