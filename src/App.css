@@ -18,6 +18,8 @@
   --feature-bg: #101615;
   --feature-ink: #f8fbf5;
   --feature-muted: #d4ddd8;
+  --control-active-bg: #101615;
+  --control-active-ink: #f8fbf5;
   --focus: #0b7285;
   --shadow: 0 18px 44px rgba(14, 23, 20, 0.11);
   --shadow-soft: 0 10px 26px rgba(14, 23, 20, 0.08);
@@ -44,9 +46,11 @@
   --danger: #ff785f;
   --warning-bg: #2a2214;
   --warning-ink: #f6d89d;
-  --feature-bg: #eef5ee;
-  --feature-ink: #0d1211;
-  --feature-muted: #43504b;
+  --feature-bg: #0d1211;
+  --feature-ink: #eef5ee;
+  --feature-muted: #b6c2bd;
+  --control-active-bg: #1a2a28;
+  --control-active-ink: #edf5ef;
   --focus: #7dd3d0;
   --shadow: 0 18px 52px rgba(0, 0, 0, 0.34);
   --shadow-soft: 0 10px 28px rgba(0, 0, 0, 0.24);
@@ -267,8 +271,8 @@ h3 {
 }
 
 .primary-link {
-  color: var(--feature-bg);
-  background: var(--feature-ink);
+  color: var(--control-active-ink);
+  background: var(--control-active-bg);
   box-shadow: var(--shadow-soft);
 }
 
@@ -556,9 +560,9 @@ h3 {
 
 .range-tabs button.active,
 .range-tabs button:hover {
-  color: var(--feature-bg);
-  border-color: var(--feature-ink);
-  background: var(--feature-ink);
+  color: var(--control-active-ink);
+  border-color: var(--control-active-bg);
+  background: var(--control-active-bg);
 }
 
 .range-short {
@@ -606,9 +610,9 @@ h3 {
 
 .floating-range-switcher .range-tabs button.active,
 .floating-range-switcher .range-tabs button:hover {
-  color: var(--feature-bg);
-  border-color: var(--feature-ink);
-  background: var(--feature-ink);
+  color: var(--control-active-ink);
+  border-color: var(--control-active-bg);
+  background: var(--control-active-bg);
 }
 
 .range-disclaimer {
