@@ -8,8 +8,10 @@ import {
   Home,
   Landmark,
   LineChart as LineChartIcon,
+  Moon,
   ReceiptText,
   Scale,
+  Sun,
   TrendingUp,
   WalletCards,
 } from 'lucide-react'
@@ -41,6 +43,8 @@ type Source = {
   url: string
   tag: string
 }
+
+type ThemeMode = 'dark' | 'light'
 
 const sources: Source[] = [
   {
@@ -223,6 +227,12 @@ function LazyChart({ children, className = 'chart-shell', height }: LazyChartPro
 
 function App() {
   const [startYear, setStartYear] = useState(2010)
+  const [theme, setTheme] = useState<ThemeMode>(() => {
+    const savedTheme = window.localStorage.getItem('eyb-theme')
+    if (savedTheme === 'dark' || savedTheme === 'light') return savedTheme
+
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  })
 
   useEffect(() => {
     if (!window.location.hash) return
@@ -231,6 +241,11 @@ function App() {
       document.querySelector(window.location.hash)?.scrollIntoView()
     })
   }, [])
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+    window.localStorage.setItem('eyb-theme', theme)
+  }, [theme])
 
   const selected = useMemo(() => {
     const range = yearlyData.filter((point) => point.year >= startYear)
@@ -367,6 +382,14 @@ function App() {
             <a href="#produktivitaet">Produktivität</a>
             <a href="#quellen">Quellen</a>
           </div>
+          <button
+            type="button"
+            className="theme-toggle"
+            aria-label={theme === 'dark' ? 'Light Mode aktivieren' : 'Dark Mode aktivieren'}
+            onClick={() => setTheme((current) => (current === 'dark' ? 'light' : 'dark'))}
+          >
+            {theme === 'dark' ? <Sun size={18} aria-hidden="true" /> : <Moon size={18} aria-hidden="true" />}
+          </button>
         </nav>
 
         <div className="hero-grid">

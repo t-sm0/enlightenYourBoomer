@@ -1,6 +1,9 @@
 import { expect, test } from '@playwright/test'
 
 test('renders the dashboard without horizontal overflow', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem('eyb-theme', 'light')
+  })
   await page.goto('/')
 
   await expect(page.getByRole('heading', { name: /Früher sparen. Heute reicht sparen oft nicht mehr/ })).toBeVisible()
@@ -9,6 +12,9 @@ test('renders the dashboard without horizontal overflow', async ({ page }) => {
   await expect(page.getByText('Ergebnis lesen')).toBeVisible()
   await expect(page.getByRole('heading', { name: /Produktiver, aber nicht entsprechend kaufkräftiger/ })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Quellen' })).toBeVisible()
+
+  await page.getByRole('button', { name: 'Dark Mode aktivieren' }).click()
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
 
   await page.getByRole('button', { name: 'Seit 1970' }).click()
   await expect(page.getByText(/Disclaimer für 1970 bis 2024/)).toBeVisible()
