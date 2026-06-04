@@ -1,19 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
-import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Legend,
-  Line,
-  LineChart,
-  ReferenceLine,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts'
+import { type ReactNode, lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowUpRight,
   Banknote,
@@ -29,6 +14,8 @@ import {
   WalletCards,
 } from 'lucide-react'
 import './App.css'
+
+const EconomicChart = lazy(() => import('./Charts'))
 
 type MetricKey =
   | 'wagesNominal'
@@ -183,7 +170,61 @@ const formatEuro = (value: number) =>
   })
 
 const indexFrom = (value: number, base: number) => (value / base) * 100
-const paddedIndexDomain = ['dataMin - 8', 'dataMax + 8'] as const
+
+type LazyChartProps = {
+  children: () => ReactNode
+  className?: string
+  height: number
+}
+
+function ChartPlaceholder({ height }: { height: number }) {
+  return (
+    <div className="chart-placeholder" style={{ minHeight: Math.max(220, height - 42) }}>
+      <LineChartIcon size={24} aria-hidden="true" />
+      <span>Grafik wird beim Scrollen geladen</span>
+    </div>
+  )
+}
+
+function LazyChart({ children, className = 'chart-shell', height }: LazyChartProps) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [shouldRender, setShouldRender] = useState(false)
+
+  useEffect(() => {
+    if (shouldRender) return
+
+    const container = containerRef.current
+    if (!container) return
+
+    if (!('IntersectionObserver' in window)) {
+      const fallback = globalThis.setTimeout(() => setShouldRender(true), 0)
+      return () => globalThis.clearTimeout(fallback)
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return
+
+        setShouldRender(true)
+        observer.disconnect()
+      },
+      { rootMargin: '520px 0px' },
+    )
+
+    observer.observe(container)
+    return () => observer.disconnect()
+  }, [shouldRender])
+
+  return (
+    <div ref={containerRef} className={className} style={{ minHeight: height }}>
+      {shouldRender ? (
+        <Suspense fallback={<ChartPlaceholder height={height} />}>{children()}</Suspense>
+      ) : (
+        <ChartPlaceholder height={height} />
+      )}
+    </div>
+  )
+}
 
 function App() {
   const [startYear, setStartYear] = useState(2010)
@@ -256,6 +297,13 @@ function App() {
     })),
   ].sort((a, b) => b.value - a.value)
   const topMover = selectedRanking[0]
+  const rankingBars = lines
+    .map((line) => ({
+      name: line.label,
+      value: indexFrom(selected.latest[line.key], selected.base[line.key]) - 100,
+      fill: line.color,
+    }))
+    .sort((a, b) => b.value - a.value)
   const isNominalTopMover = topMover.label === 'Bruttolohn nominal'
   const resultHeadline =
     startYear < 1970
@@ -295,6 +343,24 @@ function App() {
 
   return (
     <main>
+      <div className="floating-range-switcher" role="tablist" aria-label="Zeitraum dauerhaft wählen">
+        <span>Zeitraum</span>
+        <div className="range-tabs">
+          {ranges.map((range) => (
+            <button
+              type="button"
+              key={range.year}
+              aria-label={range.label}
+              className={range.year === startYear ? 'active' : ''}
+              onClick={() => setStartYear(range.year)}
+            >
+              <span className="range-full">{range.label}</span>
+              <span className="range-short">{range.year}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       <section className="hero-section">
         <nav className="topbar" aria-label="Seitennavigation">
           <a href="#kaufkraft" className="brand">
@@ -429,19 +495,6 @@ function App() {
           </p>
         </div>
 
-        <div className="range-tabs" role="tablist" aria-label="Zeitraum">
-          {ranges.map((range) => (
-            <button
-              type="button"
-              key={range.year}
-              className={range.year === startYear ? 'active' : ''}
-              onClick={() => setStartYear(range.year)}
-            >
-              {range.label}
-            </button>
-          ))}
-        </div>
-
         {isLongRange && (
           <div className="range-disclaimer" role="note">
             <strong>Disclaimer für {startYear} bis 2024:</strong>
@@ -557,29 +610,16 @@ function App() {
           </div>
         </div>
 
-        <div className="chart-shell">
-          <ResponsiveContainer width="100%" height={430}>
-            <LineChart data={selected.indexed} margin={{ top: 18, right: 16, bottom: 8, left: 0 }}>
-              <CartesianGrid strokeDasharray="4 8" vertical={false} />
-              <XAxis dataKey="year" tickMargin={12} minTickGap={18} />
-              <YAxis domain={paddedIndexDomain} tickFormatter={(value) => `${value}`} width={42} />
-              <Tooltip formatter={(value, name) => [`${formatIndex(Number(value))}`, name]} labelFormatter={(label) => `Jahr ${label}`} />
-              <Legend />
-              {lines.map((line) => (
-                <Line
-                  key={line.key}
-                  type="monotone"
-                  dataKey={line.key}
-                  name={line.label}
-                  stroke={line.color}
-                  strokeWidth={3}
-                  dot={false}
-                  activeDot={{ r: 5 }}
-                />
-              ))}
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+        <LazyChart height={430}>
+          {() => (
+            <EconomicChart
+              data={selected.indexed}
+              formatIndex={formatIndex}
+              lines={lines}
+              variant="indexed"
+            />
+          )}
+        </LazyChart>
         <p className="chart-note">
           Lesart: Die Linien sind bewusst auf denselben Startwert gesetzt. Das zeigt
           Beziehungen, ersetzt aber keine absolute Einkommensverteilung nach Beruf,
@@ -598,22 +638,15 @@ function App() {
             Miete, Wohnung oder Bauland als zu Beginn der gewählten Zeitspanne.
           </p>
         </div>
-        <div className="chart-shell compact">
-          <ResponsiveContainer width="100%" height={370}>
-            <LineChart data={selected.purchasingPower} margin={{ top: 18, right: 16, left: 0, bottom: 8 }}>
-              <CartesianGrid strokeDasharray="4 8" vertical={false} />
-              <XAxis dataKey="year" tickMargin={12} minTickGap={18} />
-              <YAxis domain={paddedIndexDomain} width={42} tickFormatter={(value) => `${value}`} />
-              <ReferenceLine y={100} stroke="#151817" strokeDasharray="5 5" />
-              <Tooltip formatter={(value, name) => [`${formatIndex(Number(value))}`, name]} />
-              <Legend />
-              <Line type="monotone" dataKey="Warenkorb" stroke="#0d9a6d" strokeWidth={3} dot={false} />
-              <Line type="monotone" dataKey="Miete" stroke="#884b95" strokeWidth={3} dot={false} />
-              <Line type="monotone" dataKey="Wohnung" stroke="#d78114" strokeWidth={3} dot={false} />
-              <Line type="monotone" dataKey="Bauland" stroke="#7a5b22" strokeWidth={3} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+        <LazyChart className="chart-shell compact" height={370}>
+          {() => (
+            <EconomicChart
+              data={selected.purchasingPower}
+              formatIndex={formatIndex}
+              variant="purchasingPower"
+            />
+          )}
+        </LazyChart>
         <p className="chart-note">
           Unter 100 heißt nicht „alles ist unleistbar“, sondern: Der Lohn ist langsamer
           gestiegen als dieser konkrete Preisindex. Über 100 heißt: Gegenüber diesem
@@ -632,20 +665,15 @@ function App() {
             Verteilungsfrage: Wer bekommt den zusätzlichen Output?
           </p>
         </div>
-        <div className="chart-shell">
-          <ResponsiveContainer width="100%" height={360}>
-            <AreaChart data={selected.gap} margin={{ top: 18, right: 16, left: 0, bottom: 8 }}>
-              <CartesianGrid strokeDasharray="4 8" vertical={false} />
-              <XAxis dataKey="year" tickMargin={12} minTickGap={18} />
-              <YAxis domain={paddedIndexDomain} width={46} />
-              <Tooltip formatter={(value, name) => [`${formatIndex(Number(value))} Punkte`, name]} />
-              <Legend />
-              <ReferenceLine y={0} stroke="#151817" strokeDasharray="5 5" />
-              <Area type="monotone" dataKey="Produktivität minus Reallohn" stroke="#334155" fill="#334155" fillOpacity={0.18} strokeWidth={2} />
-              <Area type="monotone" dataKey="Wohnimmobilien minus Lohn" stroke="#d78114" fill="#d78114" fillOpacity={0.18} strokeWidth={2} />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+        <LazyChart height={360}>
+          {() => (
+            <EconomicChart
+              data={selected.gap}
+              formatIndex={formatIndex}
+              variant="gap"
+            />
+          )}
+        </LazyChart>
         <div className="takeaway-band">
           <strong>Der faire Kern der Aussage:</strong>
           <span>
@@ -667,20 +695,15 @@ function App() {
             besitzt, trifft steigendes Wohnen und Bauland härter.
           </p>
         </div>
-        <div className="chart-shell compact">
-          <ResponsiveContainer width="100%" height={370}>
-            <LineChart data={selected.range} margin={{ top: 18, right: 16, left: 0, bottom: 8 }}>
-              <CartesianGrid strokeDasharray="4 8" vertical={false} />
-              <XAxis dataKey="year" tickMargin={12} minTickGap={18} />
-              <YAxis yAxisId="left" domain={[58, 76]} width={48} tickFormatter={(value) => `${value}%`} />
-              <YAxis yAxisId="right" orientation="right" domain={[180, 700]} width={56} tickFormatter={(value) => `${value}%`} />
-              <Tooltip formatter={(value, name) => [`${formatIndex(Number(value))}%`, name]} />
-              <Legend />
-              <Line yAxisId="left" type="monotone" dataKey="laborShare" name="Arbeitseinkommensanteil" stroke="#176b73" strokeWidth={3} dot={false} />
-              <Line yAxisId="right" type="monotone" dataKey="wealthIncome" name="Vermögen / Jahreseinkommen" stroke="#7a5b22" strokeWidth={3} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+        <LazyChart className="chart-shell compact" height={370}>
+          {() => (
+            <EconomicChart
+              data={selected.range}
+              formatIndex={formatIndex}
+              variant="capital"
+            />
+          )}
+        </LazyChart>
         <p className="chart-note">
           Diese Ebene ist Verteilungskontext. Sie erklärt, warum steigende Assetpreise
           für Menschen ohne Vermögen anders wirken als für Eigentümer.
@@ -692,27 +715,15 @@ function App() {
           <p className="eyebrow">Rangliste</p>
           <h2>Was ist seit {startYear} schneller gestiegen?</h2>
         </div>
-        <div className="chart-shell">
-          <ResponsiveContainer width="100%" height={360}>
-            <BarChart
-              data={lines
-                .map((line) => ({
-                  name: line.label,
-                  value: indexFrom(selected.latest[line.key], selected.base[line.key]) - 100,
-                  fill: line.color,
-                }))
-                .sort((a, b) => b.value - a.value)}
-              layout="vertical"
-              margin={{ top: 12, right: 18, left: 72, bottom: 8 }}
-            >
-              <CartesianGrid strokeDasharray="4 8" horizontal={false} />
-              <XAxis type="number" tickFormatter={(value) => `${value}%`} />
-              <YAxis dataKey="name" type="category" width={132} />
-              <Tooltip formatter={(value) => [`${formatIndex(Number(value))}%`, 'Veränderung']} />
-              <Bar dataKey="value" radius={[0, 8, 8, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        <LazyChart height={360}>
+          {() => (
+            <EconomicChart
+              data={rankingBars}
+              formatIndex={formatIndex}
+              variant="ranking"
+            />
+          )}
+        </LazyChart>
       </section>
 
       <section className="section sources" id="quellen">
