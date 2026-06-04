@@ -79,10 +79,10 @@ const sources: Source[] = [
   },
   {
     tag: 'Wohnen',
-    name: 'Deutsche Bundesbank: Wohnimmobilienmarkt',
+    name: 'vdpResearch: Immobilienpreisindex',
     detail:
-      'Indikatoren zu Preisen für Wohnimmobilien in Deutschland, wichtig für Vermögens- und Wohnkostenentwicklung.',
-    url: 'https://www.bundesbank.de/de/statistiken/indikatorensaetze/indikatorensystem-wohnimmobilienmarkt/preise-fuer-wohnimmobilien-in-deutschland-615214',
+      'Transaktionsbasierter Immobilienpreisindex, Basis 2010 = 100; Q4 2024 selbst genutztes Wohneigentum 187,1.',
+    url: 'https://www.vdpresearch.de/wp-content/uploads/2025/02/vdp_Index_Q4-2024_DE.pdf',
   },
   {
     tag: 'Produktivität',
@@ -110,20 +110,16 @@ const anchors: AnchorPoint[] = [
   { year: 2000, wagesNominal: 128, realWage: 103, consumerPrices: 124, rents: 132, homes: 105, land: 118, productivity: 119, wealthIncome: 430, laborShare: 67, social: 107 },
   { year: 2005, wagesNominal: 135, realWage: 99, consumerPrices: 136, rents: 142, homes: 103, land: 130, productivity: 129, wealthIncome: 455, laborShare: 64, social: 108 },
   { year: 2010, wagesNominal: 150, realWage: 100, consumerPrices: 150, rents: 153, homes: 120, land: 145, productivity: 137, wealthIncome: 485, laborShare: 65, social: 109 },
-  { year: 2015, wagesNominal: 171, realWage: 106, consumerPrices: 161, rents: 163, homes: 154, land: 202, productivity: 143, wealthIncome: 535, laborShare: 66, social: 109 },
-  { year: 2019, wagesNominal: 191, realWage: 112, consumerPrices: 170, rents: 172, homes: 204, land: 287, productivity: 147, wealthIncome: 595, laborShare: 67, social: 110 },
-  { year: 2020, wagesNominal: 193, realWage: 112, consumerPrices: 171, rents: 174, homes: 218, land: 316, productivity: 142, wealthIncome: 620, laborShare: 68, social: 110 },
-  { year: 2021, wagesNominal: 200, realWage: 111, consumerPrices: 177, rents: 176, homes: 235, land: 345, productivity: 146, wealthIncome: 650, laborShare: 67, social: 110 },
-  { year: 2022, wagesNominal: 207, realWage: 105, consumerPrices: 189, rents: 179, homes: 233, land: 371, productivity: 147, wealthIncome: 625, laborShare: 66, social: 112 },
-  { year: 2023, wagesNominal: 219, realWage: 104, consumerPrices: 200, rents: 183, homes: 217, land: 360, productivity: 146, wealthIncome: 615, laborShare: 65, social: 113 },
-  { year: 2024, wagesNominal: 232, realWage: 108, consumerPrices: 204, rents: 187, homes: 221, land: 357, productivity: 147, wealthIncome: 630, laborShare: 65, social: 114 },
-  { year: 2025, wagesNominal: 241, realWage: 111, consumerPrices: 207, rents: 192, homes: 228, land: 365, productivity: 148, wealthIncome: 640, laborShare: 65, social: 115 },
+  { year: 2015, wagesNominal: 171, realWage: 106, consumerPrices: 161, rents: 163, homes: 141, land: 202, productivity: 143, wealthIncome: 535, laborShare: 66, social: 109 },
+  { year: 2019, wagesNominal: 191, realWage: 112, consumerPrices: 170, rents: 172, homes: 181, land: 212, productivity: 147, wealthIncome: 595, laborShare: 67, social: 110 },
+  { year: 2020, wagesNominal: 193, realWage: 112, consumerPrices: 171, rents: 174, homes: 202, land: 223, productivity: 142, wealthIncome: 620, laborShare: 68, social: 110 },
+  { year: 2021, wagesNominal: 199, realWage: 112, consumerPrices: 176, rents: 176, homes: 227, land: 245, productivity: 146, wealthIncome: 650, laborShare: 67, social: 110 },
+  { year: 2022, wagesNominal: 204, realWage: 107, consumerPrices: 188, rents: 179, homes: 236, land: 270, productivity: 147, wealthIncome: 625, laborShare: 66, social: 112 },
+  { year: 2023, wagesNominal: 216, realWage: 107, consumerPrices: 199, rents: 183, homes: 222, land: 278, productivity: 146, wealthIncome: 615, laborShare: 65, social: 113 },
+  { year: 2024, wagesNominal: 222, realWage: 109, consumerPrices: 203, rents: 187, homes: 225, land: 280, productivity: 147, wealthIncome: 630, laborShare: 65, social: 114 },
 ]
 
 const ranges = [
-  { label: 'Seit 1950', year: 1950 },
-  { label: 'Seit 1970', year: 1970 },
-  { label: 'Seit 1991', year: 1991 },
   { label: 'Seit 2010', year: 2010 },
   { label: 'Seit 2020', year: 2020 },
 ]
@@ -377,8 +373,9 @@ function App() {
           <p className="eyebrow">Zeitspanne wählen</p>
           <h2>Was passiert mit dem Gehalt?</h2>
           <p>
-            Jeder gewählte Zeitraum startet bei 100. So sieht man sofort, ob Einkommen,
-            Preise, Mieten, Immobilien und Produktivität auseinanderlaufen.
+            Der interaktive Vergleich startet bewusst erst 2010. Für ältere Jahre
+            sind Lohn-, Immobilien- und Baulandreihen methodisch nicht sauber genug
+            vergleichbar, um sie in eine einzige harte Grafik zu legen.
           </p>
         </div>
 
@@ -645,7 +642,7 @@ function App() {
             'Ein steigender Nominallohn kann real wenig bringen, wenn Preise gleichzeitig steigen.',
             'Wohnungs- und Bauland-Kaufkraft rechnet Lohn gegen Vermögenspreise, nicht gegen Alltagspreise.',
             'Produktivität erklärt nicht automatisch Löhne, zeigt aber den verteilbaren Output pro Arbeitsstunde.',
-            'Langfristdaten vor 1991 sind stärker methodisch gemischt und werden als Orientierung gelesen.',
+            'Die interaktiven Zahlen starten 2010, weil Immobilien- und Baulandreihen davor nicht sauber vergleichbar sind.',
           ].map((item) => (
             <div className="method-item" key={item}>
               <Check size={18} aria-hidden="true" />
@@ -654,11 +651,12 @@ function App() {
           ))}
         </div>
         <p className="fineprint">
-          Datenstand: 04.06.2026. Die eingebetteten Werte sind als kuratierte,
-          gerundete Indexreihen aufgebaut, damit die Beziehungen verständlich
-          sichtbar werden. Für wissenschaftliche oder journalistische Verwendung
-          müssen die verlinkten Originaltabellen direkt aktualisiert und dokumentiert
-          werden.
+          Datenstand: 04.06.2026. Nach kritischer Prüfung sind die Lohn- und
+          Verbraucherpreisdaten eng an Destatis-Jahresraten ausgerichtet. Wohnen
+          nutzt den vdp-Immobilienpreisindex; Bauland bleibt wegen eingeschränkter
+          Vergleichbarkeit der Kaufwertstatistik eine vorsichtige Näherung. Für
+          wissenschaftliche oder journalistische Verwendung müssen die verlinkten
+          Originaltabellen direkt aktualisiert und dokumentiert werden.
         </p>
       </section>
     </main>
