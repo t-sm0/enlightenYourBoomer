@@ -337,6 +337,82 @@ h3 {
   line-height: 1.5;
 }
 
+.objection-panel {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.82fr) minmax(0, 1.18fr);
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.quote-card,
+.answer-grid article {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 253, 248, 0.94);
+}
+
+.quote-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 276px;
+  padding: clamp(20px, 3vw, 30px);
+  background: #fff7e4;
+}
+
+.quote-card p {
+  margin: 0;
+  color: #5c4631;
+  font-size: clamp(1.4rem, 2.8vw, 2.2rem);
+  line-height: 1.12;
+  font-weight: 900;
+}
+
+.quote-card strong {
+  color: #151817;
+  font-size: 1.05rem;
+  line-height: 1.45;
+}
+
+.answer-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.answer-grid article {
+  min-height: 276px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+}
+
+.answer-grid span {
+  color: #176b73;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.answer-grid strong {
+  color: #b64225;
+  font-size: clamp(1.45rem, 3vw, 2.25rem);
+  line-height: 1.05;
+}
+
+.answer-grid p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.answer-grid b {
+  margin-top: auto;
+  color: #151817;
+  line-height: 1.35;
+}
+
 .section-heading {
   max-width: 760px;
   margin-bottom: 28px;
@@ -695,7 +771,12 @@ h3 {
   }
 
   .example-panel,
+  .objection-panel,
   .takeaway-band {
+    grid-template-columns: 1fr;
+  }
+
+  .answer-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -724,6 +805,11 @@ h3 {
 
   .example-grid {
     grid-template-columns: 1fr;
+  }
+
+  .quote-card,
+  .answer-grid article {
+    min-height: auto;
   }
 
   .explain-card {

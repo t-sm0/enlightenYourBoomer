@@ -238,6 +238,15 @@ function App() {
   const sameRentSalary = salaryExample * (selected.latest.rents / selected.base.rents)
   const sameHomeSalary = salaryExample * (selected.latest.homes / selected.base.homes)
   const sameLandSalary = salaryExample * (selected.latest.land / selected.base.land)
+  const baseHouseYears = 5
+  const homeYearsToday =
+    baseHouseYears *
+    (heroLatest.homes / heroBase.homes) /
+    (heroLatest.wagesNominal / heroBase.wagesNominal)
+  const landYearsToday =
+    baseHouseYears *
+    (heroLatest.land / heroBase.land) /
+    (heroLatest.wagesNominal / heroBase.wagesNominal)
 
   return (
     <main>
@@ -256,12 +265,13 @@ function App() {
 
         <div className="hero-grid">
           <div className="hero-copy">
-            <p className="eyebrow">Deutschland, verständlich indexiert</p>
-            <h1>Mehr Gehalt heißt nicht automatisch mehr Leben.</h1>
+            <p className="eyebrow">Für alle, die sagen: „Wir mussten früher auch sparen.“</p>
+            <h1>Früher sparen. Heute reicht sparen oft nicht mehr.</h1>
             <p className="lede">
-              Der Lohnzettel ist seit 2010 deutlich größer geworden. Nach Inflation
-              bleibt davon nur ein kleiner Kaufkraftgewinn. Gegen Wohnen, Bauland
-              und Produktivität sieht die Bilanz wesentlich härter aus.
+              Niemand bestreitet, dass frühere Generationen verzichten mussten.
+              Der Unterschied ist: Wohnen, Bauland und Vermögen sind relativ zum
+              Einkommen schneller weggezogen. Aus Verzicht wurde früher eher Eigentum.
+              Heute wird aus Verzicht oft nur Schadensbegrenzung.
             </p>
             <div className="hero-actions">
               <a className="primary-link" href="#kaufkraft">
@@ -304,14 +314,14 @@ function App() {
         <div className="explain-card">
           <Scale size={28} aria-hidden="true" />
           <div>
-            <p className="eyebrow">Die Kernaussage</p>
-            <h2>Das Problem ist nicht nur Inflation.</h2>
+            <p className="eyebrow">Die faire Antwort</p>
+            <h2>Ja, früher war Sparen hart. Aber das Ziel war näher.</h2>
             <p>
-              Die einfache Wahrheit: Wenn Preise, Mieten oder Immobilien schneller steigen
-              als dein Einkommen, kannst du dir davon weniger leisten. Die vollständigere
-              Wahrheit: Reallöhne sind langfristig nicht in jeder Phase gefallen, aber sie
-              sind seit den 1990ern schwach, in Inflationsschüben real eingebrochen und
-              deutlich hinter Produktivität und Vermögenswerten zurückgeblieben.
+              Der Punkt ist nicht: „Früher war alles leicht.“ Der Punkt ist:
+              Wer damals auf Urlaub, Auto oder Konsum verzichtet hat, konnte mit
+              diesem Verzicht häufiger ein Haus abbezahlen und Vermögen aufbauen.
+              Heute muss man oft ähnlich hart sparen, aber das Ziel bewegt sich
+              schneller vom Einkommen weg.
             </p>
           </div>
         </div>
@@ -319,19 +329,46 @@ function App() {
         <div className="story-rail" aria-label="Kurz erklärt">
           <article>
             <span>1</span>
-            <strong>Nominal klingt gut</strong>
-            <p>Der Betrag auf dem Gehaltszettel wächst. Das ist die Zahl, die man sofort sieht.</p>
+            <strong>Sparen ist nicht der Streitpunkt</strong>
+            <p>Natürlich mussten Familien früher verzichten. Das war real und oft hart.</p>
           </article>
           <article>
             <span>2</span>
-            <strong>Real zählt Kaufkraft</strong>
-            <p>Erst nach Abzug der Preissteigerung sieht man, ob mehr Alltag übrig bleibt.</p>
+            <strong>Der Preis des Ziels zählt</strong>
+            <p>Entscheidend ist, wie viele Jahresgehälter Haus, Grundstück und Sicherheit kosten.</p>
           </article>
           <article>
             <span>3</span>
-            <strong>Wohnen zieht davon</strong>
-            <p>Immobilien und Bauland sind Vermögenspreise. Sie können viel schneller steigen als Löhne.</p>
+            <strong>Heute läuft das Ziel weg</strong>
+            <p>Wenn Vermögenspreise schneller steigen als Löhne, reicht derselbe Verzicht weniger weit.</p>
           </article>
+        </div>
+
+        <div className="objection-panel">
+          <div className="quote-card">
+            <p>„Wir konnten früher auch nicht in den Urlaub fahren, weil der Hauskredit bezahlt werden musste.“</p>
+            <strong>Stimmt. Aber der Kredit kaufte damals häufiger den Einstieg in Vermögen.</strong>
+          </div>
+          <div className="answer-grid">
+            <article>
+              <span>Wenn ein Haus 2010</span>
+              <strong>{formatIndex(baseHouseYears)} Jahresgehälter</strong>
+              <p>gekostet hätte, läge derselbe Immobilienpreisindex heute bei</p>
+              <b>{formatIndex(homeYearsToday)} Jahresgehältern.</b>
+            </article>
+            <article>
+              <span>Bei Bauland wäre es härter</span>
+              <strong>{formatIndex(baseHouseYears)} → {formatIndex(landYearsToday)}</strong>
+              <p>Jahresgehälter für dieselbe Kaufkraft gegenüber Grundstückspreisen.</p>
+              <b>Der Abstand wird mit jedem Jahr Sparen größer.</b>
+            </article>
+            <article>
+              <span>Der Unterschied</span>
+              <strong>Konsumverzicht ≠ Vermögenszugang</strong>
+              <p>Auf Urlaub verzichten spart Geld. Aber wenn das Haus schneller steigt als das Gehalt, kauft der Verzicht weniger Zukunft.</p>
+              <b>Das ist der Generationenbruch.</b>
+            </article>
+          </div>
         </div>
       </section>
 
