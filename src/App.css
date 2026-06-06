@@ -244,6 +244,12 @@ main {
   margin-top: 30px;
 }
 
+.government-hero h1 {
+  max-width: 850px;
+  font-size: clamp(3.2rem, 8vw, 7.2rem);
+  line-height: 0.98;
+}
+
 .eyebrow {
   margin: 0 0 10px;
   color: var(--brand);
@@ -310,7 +316,7 @@ h3 {
 .status-meter strong {
   margin: 16px 0 10px;
   color: var(--danger);
-  font-size: clamp(3.2rem, 7vw, 6.5rem);
+  font-size: clamp(3rem, 6vw, 5.8rem);
   line-height: 0.88;
 }
 
@@ -411,6 +417,54 @@ h3 {
   color: var(--danger);
 }
 
+.live-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 28px 0 0;
+}
+
+.live-grid article {
+  min-height: 142px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-soft);
+}
+
+.live-grid span,
+.party-lead span,
+.impact-grid span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.live-grid strong {
+  margin-top: auto;
+  font-size: clamp(1.85rem, 4vw, 3rem);
+  line-height: 1;
+}
+
+.live-grid .positive strong {
+  color: var(--positive);
+}
+
+.live-grid .danger strong {
+  color: var(--danger);
+}
+
+.live-grid p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
 .plain-answer {
   display: grid;
   grid-template-columns: minmax(260px, 0.58fr) minmax(0, 1fr);
@@ -459,6 +513,132 @@ h3 {
   line-height: 1.65;
 }
 
+.party-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+
+.party-tabs button,
+.data-toggle {
+  flex: 0 0 auto;
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: var(--muted);
+  background: var(--surface-raised);
+  font-weight: 850;
+  cursor: pointer;
+  transition: transform 160ms ease, color 160ms ease, background 160ms ease, border-color 160ms ease;
+}
+
+.party-tabs button:hover,
+.party-tabs button.active {
+  color: #fff;
+  border-color: var(--party-accent);
+  background: var(--party-accent);
+  transform: translateY(-1px);
+}
+
+.party-panel {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.42fr) minmax(0, 1fr);
+  gap: 16px;
+  padding: clamp(16px, 3vw, 26px);
+  border: 1px solid color-mix(in srgb, var(--party-accent), var(--line) 46%);
+  border-radius: 8px;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--party-accent), transparent 88%), transparent 44%),
+    var(--surface-raised);
+  box-shadow: var(--shadow);
+}
+
+.party-lead,
+.party-thesis,
+.impact-grid article {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface), transparent 8%);
+}
+
+.party-lead {
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 18px;
+}
+
+.party-lead h3 {
+  margin: 10px 0;
+  color: var(--party-accent);
+  font-size: clamp(2.2rem, 5vw, 4.4rem);
+  line-height: 0.92;
+}
+
+.party-lead p,
+.party-thesis p,
+.impact-grid strong {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.party-thesis {
+  padding: 18px;
+}
+
+.party-thesis > p {
+  color: var(--ink);
+  font-size: clamp(1.05rem, 2vw, 1.28rem);
+  font-weight: 800;
+}
+
+.policy-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.policy-grid article {
+  min-height: 132px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--soft-line);
+  border-radius: 8px;
+  background: var(--surface-raised);
+  line-height: 1.42;
+}
+
+.policy-grid svg {
+  color: var(--party-accent);
+}
+
+.impact-grid {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.impact-grid article {
+  min-height: 146px;
+  padding: 16px;
+}
+
+.impact-grid strong {
+  display: block;
+  margin-top: 12px;
+  color: var(--ink);
+  font-size: 1rem;
+}
+
 .range-disclaimer {
   display: grid;
   grid-template-columns: minmax(170px, 0.34fr) 1fr;
@@ -485,6 +665,32 @@ h3 {
 }
 
 .chart-stage {
+  padding: clamp(14px, 3vw, 24px);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-raised);
+  box-shadow: var(--shadow);
+}
+
+.data-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: #fff;
+  border-color: var(--brand);
+  background: var(--brand);
+  box-shadow: var(--shadow-soft);
+}
+
+.data-toggle:hover {
+  background: var(--brand-strong);
+  transform: translateY(-1px);
+}
+
+.data-archive {
+  display: grid;
+  gap: 16px;
+  margin-top: 18px;
   padding: clamp(14px, 3vw, 24px);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -651,7 +857,7 @@ h3 {
 
 .source-card {
   position: relative;
-  min-height: 178px;
+  min-height: 156px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -679,7 +885,8 @@ h3 {
 .source-card p {
   margin: 0;
   color: var(--muted);
-  line-height: 1.5;
+  font-size: 0.92rem;
+  line-height: 1.45;
 }
 
 .source-card svg {
@@ -710,12 +917,19 @@ h3 {
 
 @media (max-width: 980px) {
   .status-grid,
-  .plain-answer {
+  .plain-answer,
+  .party-panel {
     grid-template-columns: 1fr;
   }
 
+  .live-grid,
   .metric-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .policy-grid,
+  .impact-grid {
+    grid-template-columns: 1fr;
   }
 
   .insight-grid,
@@ -763,7 +977,12 @@ h3 {
   }
 
   h1 {
-    font-size: clamp(5.4rem, 30vw, 8rem);
+    font-size: clamp(3rem, 17vw, 5rem);
+  }
+
+  .government-hero h1 {
+    font-size: clamp(2.7rem, 12.5vw, 4.4rem);
+    line-height: 1;
   }
 
   .status-meter {
@@ -775,6 +994,7 @@ h3 {
     margin-top: 24px;
   }
 
+  .live-grid,
   .metric-grid,
   .method-grid {
     grid-template-columns: 1fr;
@@ -795,6 +1015,18 @@ h3 {
 
   .range-disclaimer {
     grid-template-columns: 1fr;
+  }
+
+  .party-tabs {
+    margin-inline: -2px;
+  }
+
+  .party-lead {
+    min-height: 160px;
+  }
+
+  .party-lead h3 {
+    font-size: clamp(2rem, 13vw, 3.6rem);
   }
 }
 

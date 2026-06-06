@@ -1,4 +1,4 @@
-import { type ReactNode, lazy, startTransition, Suspense, useEffect, useMemo, useState } from 'react'
+import { type CSSProperties, lazy, startTransition, Suspense, useEffect, useMemo, useState } from 'react'
 import {
   Banknote,
   BarChart3,
@@ -32,43 +32,66 @@ type MetricKey =
   | 'laborShare'
   | 'social'
 
-type EconomicPoint = {
-  year: number
-} & Record<MetricKey, number>
-
+type EconomicPoint = { year: number } & Record<MetricKey, number>
 type AnchorPoint = Pick<EconomicPoint, 'year'> & Partial<Record<MetricKey, number>>
-
-type Source = {
-  name: string
-  detail: string
-  url: string
-  tag: string
-}
-
 type ThemeMode = 'dark' | 'light'
 type ChartTab = 'overview' | 'power' | 'productivity' | 'capital' | 'ranking'
+type PartyKey = 'regierung' | 'union' | 'spd' | 'gruene' | 'afd' | 'linke'
+
+type Source = {
+  detail: string
+  name: string
+  tag: string
+  url: string
+}
+
+type PartyProfile = {
+  accent: string
+  label: string
+  role: string
+  status: string
+  thesis: string
+  levers: string[]
+  impact: string
+  risk: string
+  source: string
+}
 
 const sources: Source[] = [
   {
-    tag: 'Reallohn',
-    name: 'Destatis: Reallöhne und Nominallöhne',
+    tag: 'Regierung',
+    name: 'Bundesregierung: Koalitionsvertrag 2025',
     detail:
-      'Destatis definiert den Reallohn als Verdienst nach Berücksichtigung der Inflation und verlinkt die Jahres-Tabellen in GENESIS.',
-    url: 'https://www.destatis.de/DE/Themen/Arbeit/Verdienste/Realloehne-Nettoverdienste/_inhalt.html',
+      'CDU, CSU und SPD unterzeichneten den Koalitionsvertrag am 5. Mai 2025; er ist die Grundlage der aktuellen Bundesregierung.',
+    url: 'https://www.bundesregierung.de/breg-de/aktuelles/koalitionsvertrag-2025-2340970',
   },
   {
-    tag: 'Langfrist',
-    name: 'Deutsche Bundesbank: Lange Zeitreihen seit 1948',
+    tag: 'Kanzler',
+    name: 'Bundestag: Friedrich Merz zum Bundeskanzler gewählt',
     detail:
-      'Jahreswerte zu wirtschaftlicher Entwicklung, Arbeitsmarkt/Löhnen, Preisen und Kaufkraftverlust des Geldes.',
-    url: 'https://www.bundesbank.de/de/statistiken/indikatorensaetze/lange-zeitreihen/lange-zeitreihen-802898',
+      'Der Bundestag wählte Friedrich Merz am 6. Mai 2025 im zweiten Wahlgang zum Bundeskanzler.',
+    url: 'https://www.bundestag.de/dokumente/textarchiv/2025/kw19-de-kanzlerwahl-1062470',
   },
   {
-    tag: 'Preise',
-    name: 'Destatis / GENESIS 61111-0001',
+    tag: 'Entlastung',
+    name: 'Bundesregierung: Energiepreis-Entlastungen wirken',
     detail:
-      'Verbraucherpreisindex Deutschland; Grundlage für die Umrechnung nominaler Verdienste in Kaufkraft.',
-    url: 'https://genesis.destatis.de/datenbank/online/table/61111-0001/table-toolbar',
+      'Netzentgeltzuschuss, abgesenkte Stromsteuer für produzierende Unternehmen und abgeschaffte Gasspeicherumlage sollen Energiekosten senken.',
+    url: 'https://www.bundesregierung.de/breg-de/aktuelles/senkung-energiepreise-2358526',
+  },
+  {
+    tag: 'Kaufkraft',
+    name: 'Destatis: Reallöhne 1. Quartal 2026',
+    detail:
+      'Nominallöhne +4,1 %, Verbraucherpreise +2,2 %, Reallöhne +1,8 % gegenüber dem Vorjahresquartal.',
+    url: 'https://www.destatis.de/DE/Presse/Pressemitteilungen/2026/05/PD26_178_62321.html',
+  },
+  {
+    tag: 'Inflation',
+    name: 'Destatis: Inflation April 2026',
+    detail:
+      'Die Inflationsrate lag im April 2026 bei +2,9 %; Energiepreise und Kraftstoffe trieben den Anstieg.',
+    url: 'https://www.destatis.de/DE/Presse/Pressemitteilungen/2026/05/PD26_161_611.html',
   },
   {
     tag: 'Wohnen',
@@ -78,20 +101,148 @@ const sources: Source[] = [
     url: 'https://www.vdpresearch.de/wp-content/uploads/2025/02/vdp_Index_Q4-2024_DE.pdf',
   },
   {
-    tag: 'Produktivität',
-    name: 'OECD: GDP per hour worked',
+    tag: 'Parteien',
+    name: 'Bundestag: Fraktionen im 21. Deutschen Bundestag',
     detail:
-      'BIP je Arbeitsstunde als Produktivitätsmaß; die OECD weist darauf hin, dass es nicht nur individuelle Leistung misst.',
-    url: 'https://www.oecd.org/en/data/indicators/gdp-per-hour-worked.html',
+      'Im 21. Bundestag gibt es Fraktionen von CDU/CSU, AfD, SPD, Bündnis 90/Die Grünen und Die Linke.',
+    url: 'https://www.bundestag.de/abgeordnete/sitzverteilung',
   },
   {
-    tag: 'Vermögen',
+    tag: 'Union',
+    name: 'CDU/CSU: Wahlprogramm 2025',
+    detail:
+      'Programmatische Grundlage zu Steuern, Energie, Wirtschaft und Wohneigentum.',
+    url: 'https://www.cdu.de/wahlprogramm-von-cdu-und-csu/',
+  },
+  {
+    tag: 'SPD',
+    name: 'SPD: Regierungsprogramm 2025',
+    detail:
+      'Programmatische Grundlage zu Mindestlohn, Steuern, Tarifbindung, Mieten und sozialer Entlastung.',
+    url: 'https://www.spd.de/fileadmin/Dokumente/Beschluesse/Programm/2025_SPD_Regierungsprogramm.pdf',
+  },
+  {
+    tag: 'Grüne',
+    name: 'Bündnis 90/Die Grünen: Wahlprogramm 2025',
+    detail:
+      'Programmatische Grundlage zu bezahlbarem Leben, Energie, Investitionen und Mieten.',
+    url: 'https://www.gruene.de/artikel/zusammen-wachsen',
+  },
+  {
+    tag: 'AfD',
+    name: 'AfD: Bundestagswahlprogramm 2025',
+    detail:
+      'Programmatische Grundlage zu Steuern, Energie, Wohnen und Abgaben.',
+    url: 'https://www.afd.de/wahlprogramm25/',
+  },
+  {
+    tag: 'Linke',
+    name: 'Die Linke: Wahlprogramm 2025',
+    detail:
+      'Programmatische Grundlage zu Mieten, Mindestlohn, Grundbedarf und Steuerumverteilung.',
+    url: 'https://www.die-linke.de/bundestagswahl-2025/wahlprogramm/',
+  },
+  {
+    tag: 'Kapital',
     name: 'World Inequality Database / Piketty-Zucman',
     detail:
-      'WID bündelt historische Einkommens- und Vermögensdaten; Metadaten verweisen u. a. auf Piketty & Zucman, Capital is Back.',
+      'WID bündelt historische Einkommens- und Vermögensdaten; relevant für Vermögen relativ zu Einkommen.',
     url: 'https://wid.world/wid-world-2/',
   },
 ]
+
+const partyProfiles: Record<PartyKey, PartyProfile> = {
+  regierung: {
+    accent: '#58a6ff',
+    label: 'Aktuelle Regierung',
+    role: 'CDU/CSU + SPD',
+    status: 'Im Amt seit Mai 2025',
+    thesis: 'Die Regierung setzt auf Energieentlastung, Wirtschaftswachstum und spätere Steuerentlastung. Für Bürger wirkt das kurzfristig vor allem über Strom/Gas, Mindestlohn und Inflationslage.',
+    levers: [
+      'Netzentgelte werden 2026 mit Bundesmitteln gedämpft; Gasspeicherumlage ist abgeschafft.',
+      'Gesetzlicher Mindestlohn: 13,90 Euro seit Januar 2026, weiterer Schritt 2027 geplant.',
+      'Große Einkommensteuerreform für kleine und mittlere Einkommen ist für 2027 angekündigt.',
+    ],
+    impact: 'Kurzfristig kann Energieentlastung helfen. Die strukturelle Frage, ob Löhne wieder näher an Wohneigentum und Bauland herankommen, ist damit noch nicht beantwortet.',
+    risk: 'Viele Maßnahmen sind indirekt oder zeitverzögert. Wenn Energie, Mieten und Baukosten schneller steigen, verpufft ein Teil der Entlastung.',
+    source: 'Koalitionsvertrag, Bundesregierung, Destatis',
+  },
+  union: {
+    accent: '#4b8dff',
+    label: 'CDU/CSU',
+    role: 'Regierungsfraktion',
+    status: 'Kanzlerpartei',
+    thesis: 'Die Union argumentiert stärker über Wachstum, Standortkosten, niedrigere Energieabgaben und Entlastung von Arbeit und Unternehmen.',
+    levers: [
+      'Stromsteuer/Netzentgelte senken, damit Wirtschaft und Haushalte weniger Energiekosten tragen.',
+      'Einkommensteuer und kalte Progression für arbeitende Mitte entschärfen.',
+      'Wohneigentum über Förderung, Bestandserwerb und mehr Neubau wieder erreichbarer machen.',
+    ],
+    impact: 'Kann Kaufkraft stabilisieren, wenn Entlastungen tatsächlich bei Haushalten ankommen und Wachstum Löhne zieht.',
+    risk: 'Unternehmens- und Standortentlastungen helfen Bürgern nur indirekt, wenn sie nicht in Löhne, Preise oder Mieten durchgereicht werden.',
+    source: 'CDU/CSU Wahlprogramm und Koalitionsvertrag',
+  },
+  spd: {
+    accent: '#ff5b64',
+    label: 'SPD',
+    role: 'Regierungsfraktion',
+    status: 'Koalitionspartner',
+    thesis: 'Die SPD setzt stärker auf Löhne, Tarifbindung, Mindestlohn, Mieterschutz und Entlastung niedriger bis mittlerer Einkommen.',
+    levers: [
+      'Mindestlohn und Tarifbindung sollen unteren Einkommen direkt helfen.',
+      'Steuerentlastung soll gezielt kleine und mittlere Einkommen erreichen.',
+      'Mieterschutz und bezahlbares Wohnen sollen verhindern, dass Lohnzuwächse in Wohnkosten verschwinden.',
+    ],
+    impact: 'Direkte Lohn- und Mietpolitik ist für Kaufkraft schneller spürbar als reine Standortpolitik.',
+    risk: 'Wenn höhere Löhne in Preisen oder Sozialabgaben aufgezehrt werden und Wohnungsangebot knapp bleibt, reicht das nicht für Vermögensaufbau.',
+    source: 'SPD Regierungsprogramm und Koalitionsvertrag',
+  },
+  gruene: {
+    accent: '#36d399',
+    label: 'Grüne',
+    role: 'Opposition',
+    status: 'Nicht in der Regierung',
+    thesis: 'Die Grünen stellen bezahlbares Leben, Mieten, Energieumbau und Investitionen in den Mittelpunkt.',
+    levers: [
+      'Pakt für bezahlbares Leben: Fokus auf Wohnen, Energie, Lebensmittel und Mobilität.',
+      'Stromsteuer auf EU-Minimum und schnellere Erneuerbare sollen Energiekosten senken.',
+      'Mieten stärker begrenzen, sozialen Wohnungsbau und Gemeinnützigkeit stärken.',
+    ],
+    impact: 'Adressiert die laufenden Kosten direkt, besonders Miete und Energie.',
+    risk: 'Investitions- und Klimapolitik wirkt mittel- bis langfristig. Kurzfristig hängt viel an Finanzierung und Umsetzungstempo.',
+    source: 'Grünen-Programm und Bundestagsfraktion',
+  },
+  afd: {
+    accent: '#5fb0ff',
+    label: 'AfD',
+    role: 'Opposition',
+    status: 'Zweitgrößte Fraktion',
+    thesis: 'Die AfD argumentiert über starke Steuer- und Abgabensenkungen, Energiepreis-Senkung und Abschaffung von CO2-Kosten.',
+    levers: [
+      'Umfassende Steuerreform zur Entlastung von Familien, Mittelstand und Unternehmen.',
+      'Bei Energiepreisschocks fordert die Fraktion ein Entlastungspaket und niedrigere CO2-Kosten.',
+      'Wohnkosten sollen über weniger Regulierung und günstigere Energie/Bauen sinken.',
+    ],
+    impact: 'Würde kurzfristig verfügbare Einkommen erhöhen, falls Entlastungen ohne Gegenbelastung finanziert werden.',
+    risk: 'Die entscheidende Frage ist Gegenfinanzierung. Ohne robuste Finanzierung können Defizite, Leistungskürzungen oder spätere Belastungen entstehen.',
+    source: 'AfD Wahlprogramm, Bundestagsanträge und Fraktionspositionen',
+  },
+  linke: {
+    accent: '#d870ff',
+    label: 'Die Linke',
+    role: 'Opposition',
+    status: 'Fraktion im Bundestag',
+    thesis: 'Die Linke setzt auf direkte Entlastung unten und Mitte: Mieten begrenzen, Mindestlohn erhöhen, Grundbedarf günstiger, hohe Vermögen stärker belasten.',
+    levers: [
+      'Mietendeckel, mehr öffentlicher Wohnraum und strengere Eingriffe gegen hohe Mieten.',
+      'Mindestlohn mindestens 15 Euro, perspektivisch 16 Euro.',
+      'Steuerentlastung kleiner Einkommen, Finanzierung über hohe Einkommen und Vermögen.',
+    ],
+    impact: 'Trifft Kaufkraftprobleme sehr direkt, vor allem bei Miete, Lohnuntergrenze und Grundbedarf.',
+    risk: 'Starke Eingriffe können Investitionsanreize und Wohnungsangebot beeinflussen; Umsetzung hängt stark von Verfassungs- und Bundeskompetenzen ab.',
+    source: 'Wahlprogramm Die Linke',
+  },
+}
 
 const anchors: AnchorPoint[] = [
   { year: 1950, wagesNominal: 7, realWage: 42, consumerPrices: 16, rents: 19, homes: 22, land: 15, productivity: 28, wealthIncome: 210, laborShare: 68, social: 52 },
@@ -99,11 +250,8 @@ const anchors: AnchorPoint[] = [
   { year: 1970, wagesNominal: 52, realWage: 112, consumerPrices: 43, rents: 55, homes: 60, land: 58, productivity: 82, wealthIncome: 290, laborShare: 73, social: 78 },
   { year: 1980, wagesNominal: 92, realWage: 124, consumerPrices: 75, rents: 86, homes: 88, land: 98, productivity: 103, wealthIncome: 330, laborShare: 72, social: 91 },
   { year: 1991, wagesNominal: 100, realWage: 100, consumerPrices: 100, rents: 100, homes: 100, land: 100, productivity: 100, wealthIncome: 360, laborShare: 70, social: 100 },
-  { year: 1995, wagesNominal: 116, realWage: 103, consumerPrices: 112, rents: 118, homes: 104, land: 109, productivity: 109, wealthIncome: 390, laborShare: 69, social: 105 },
   { year: 2000, wagesNominal: 128, realWage: 103, consumerPrices: 124, rents: 132, homes: 105, land: 118, productivity: 119, wealthIncome: 430, laborShare: 67, social: 107 },
-  { year: 2005, wagesNominal: 135, realWage: 99, consumerPrices: 136, rents: 142, homes: 103, land: 130, productivity: 129, wealthIncome: 455, laborShare: 64, social: 108 },
   { year: 2010, wagesNominal: 150, realWage: 100, consumerPrices: 150, rents: 153, homes: 120, land: 145, productivity: 137, wealthIncome: 485, laborShare: 65, social: 109 },
-  { year: 2015, wagesNominal: 171, realWage: 106, consumerPrices: 161, rents: 163, homes: 141, land: 202, productivity: 143, wealthIncome: 535, laborShare: 66, social: 109 },
   { year: 2019, wagesNominal: 191, realWage: 112, consumerPrices: 170, rents: 172, homes: 181, land: 212, productivity: 147, wealthIncome: 595, laborShare: 67, social: 110 },
   { year: 2020, wagesNominal: 193, realWage: 112, consumerPrices: 171, rents: 174, homes: 202, land: 223, productivity: 142, wealthIncome: 620, laborShare: 68, social: 110 },
   { year: 2021, wagesNominal: 199, realWage: 112, consumerPrices: 176, rents: 176, homes: 227, land: 245, productivity: 146, wealthIncome: 650, laborShare: 67, social: 110 },
@@ -137,6 +285,35 @@ const chartTabs: Array<{ key: ChartTab; label: string; description: string }> = 
   { key: 'ranking', label: 'Ranking', description: 'Was im gewählten Zeitraum am stärksten gestiegen ist.' },
 ]
 
+const partyOrder: PartyKey[] = ['regierung', 'union', 'spd', 'gruene', 'afd', 'linke']
+
+const liveSignals = [
+  {
+    label: 'Reallohn Q1 2026',
+    value: '+1,8%',
+    note: 'Nominallöhne +4,1 %, Verbraucherpreise +2,2 %',
+    tone: 'positive',
+  },
+  {
+    label: 'Inflation April 2026',
+    value: '+2,9%',
+    note: 'Energie und Kraftstoffe treiben den Anstieg',
+    tone: 'danger',
+  },
+  {
+    label: 'Energieentlastung',
+    value: '~10 Mrd. Euro',
+    note: 'Netzentgelte und Gasspeicherumlage 2026',
+    tone: 'neutral',
+  },
+  {
+    label: 'Mindestlohn 2026',
+    value: '13,90 Euro',
+    note: 'gesetzlicher Mindestlohn seit Januar 2026',
+    tone: 'positive',
+  },
+]
+
 const interpolate = (start: AnchorPoint, end: AnchorPoint, year: number, key: MetricKey) => {
   const startValue = start[key] ?? 0
   const endValue = end[key] ?? startValue
@@ -167,22 +344,10 @@ const yearlyData: EconomicPoint[] = anchors.flatMap((anchor, index) => {
   return years
 })
 
-const formatIndex = (value: number) =>
-  value.toLocaleString('de-DE', { maximumFractionDigits: 1 })
-
-const formatSignedPercent = (value: number) =>
-  `${value >= 0 ? '+' : ''}${formatIndex(value)}%`
-
-const formatSignedPoints = (value: number) =>
-  `${value >= 0 ? '+' : ''}${formatIndex(value)} Pkt.`
-
+const formatIndex = (value: number) => value.toLocaleString('de-DE', { maximumFractionDigits: 1 })
+const formatSignedPercent = (value: number) => `${value >= 0 ? '+' : ''}${formatIndex(value)}%`
+const formatSignedPoints = (value: number) => `${value >= 0 ? '+' : ''}${formatIndex(value)} Pkt.`
 const indexFrom = (value: number, base: number) => (value / base) * 100
-
-type LazyChartProps = {
-  children: () => ReactNode
-  className?: string
-  height: number
-}
 
 function ChartPlaceholder({ height }: { height: number }) {
   return (
@@ -193,21 +358,14 @@ function ChartPlaceholder({ height }: { height: number }) {
   )
 }
 
-function LazyChart({ children, className = 'chart-shell', height }: LazyChartProps) {
-  return (
-    <div className={className} style={{ minHeight: height }}>
-      <Suspense fallback={<ChartPlaceholder height={height} />}>{children()}</Suspense>
-    </div>
-  )
-}
-
 function App() {
   const [startYear, setStartYear] = useState(2010)
   const [activeTab, setActiveTab] = useState<ChartTab>('power')
+  const [activeParty, setActiveParty] = useState<PartyKey>('regierung')
+  const [showCharts, setShowCharts] = useState(false)
   const [theme, setTheme] = useState<ThemeMode>(() => {
     const savedTheme = window.localStorage.getItem('eyb-theme')
     if (savedTheme === 'dark' || savedTheme === 'light') return savedTheme
-
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
   })
 
@@ -246,26 +404,23 @@ function App() {
       'Wohnimmobilien minus Lohn': indexFrom(point.homes, base.homes) - indexFrom(point.wagesNominal, base.wagesNominal),
     }))
 
-    return { range, base, latest, indexed, purchasingPower, gap }
+    return { base, gap, indexed, latest, purchasingPower, range }
   }, [startYear])
 
   const wageChange = indexFrom(selected.latest.wagesNominal, selected.base.wagesNominal) - 100
   const realWageChange = indexFrom(selected.latest.realWage, selected.base.realWage) - 100
   const inflationChange = indexFrom(selected.latest.consumerPrices, selected.base.consumerPrices) - 100
-  const rentChange = indexFrom(selected.latest.rents, selected.base.rents) - 100
   const homeChange = indexFrom(selected.latest.homes, selected.base.homes) - 100
   const landChange = indexFrom(selected.latest.land, selected.base.land) - 100
   const currentPower = selected.purchasingPower[selected.purchasingPower.length - 1]
   const basketPower = currentPower.Warenkorb - 100
-  const rentPower = currentPower.Miete - 100
   const homePower = currentPower.Wohnung - 100
   const landPower = currentPower.Bauland - 100
   const productivityGap = selected.gap[selected.gap.length - 1]['Produktivität minus Reallohn']
-  const homeVsWageGap = homeChange - wageChange
-  const landVsWageGap = landChange - wageChange
+  const selectedTab = chartTabs.find((tab) => tab.key === activeTab) ?? chartTabs[0]
+  const selectedParty = partyProfiles[activeParty]
   const isLongRange = startYear < 2010
   const isPreReunificationRange = startYear < 1991
-  const selectedTab = chartTabs.find((tab) => tab.key === activeTab) ?? chartTabs[0]
   const rankingBars = [
     { name: 'Bauland', value: landChange, fill: '#8f6b2a' },
     ...lines.map((line) => ({
@@ -274,13 +429,6 @@ function App() {
       fill: line.color,
     })),
   ].sort((a, b) => b.value - a.value)
-
-  const status = homePower < -10 || landPower < -10 ? 'Nein' : 'Teilweise'
-  const statusCopy =
-    homePower < -10 || landPower < -10
-      ? 'Ein Gehalt kauft heute weniger Einstieg in Wohneigentum und Bauland als am Startpunkt.'
-      : 'Im langen Nachkriegsfenster sieht man Aufholphasen. Für heutige Einstiegshürden ist der jüngere Zeitraum aussagekräftiger.'
-  const liveUpdated = 'Datenstand 2024, geprüft 06/2026'
 
   return (
     <main>
@@ -291,8 +439,8 @@ function App() {
             <span>enlightenYourBoomer</span>
           </a>
           <div className="nav-links">
-            <a href="#charts">Charts</a>
-            <a href="#methodik">Methodik</a>
+            <a href="#parteien">Parteien</a>
+            <a href="#daten">Daten</a>
             <a href="#quellen">Quellen</a>
           </div>
           <button
@@ -308,208 +456,282 @@ function App() {
         <div className="tracker-card" id="top">
           <div className="tracker-kicker">
             <span className="live-dot" aria-hidden="true" />
-            Live-Tracker
-            <span>{liveUpdated}</span>
+            Regierungs-Tracker
+            <span>Aktualisiert: 06.06.2026</span>
           </div>
 
-          <div className="status-grid">
+          <div className="status-grid government-hero">
             <div className="status-copy">
-              <p className="eyebrow">Kann man sich mit Gehalt noch gleich viel aufbauen?</p>
-              <h1>{status}</h1>
-              <p className="lede">{statusCopy}</p>
+              <p className="eyebrow">Frage an die aktuelle Bundesregierung</p>
+              <h1>Wird Aufbau wieder bezahlbar?</h1>
+              <p className="lede">
+                Die Regierung Merz aus CDU/CSU und SPD verspricht Entlastung, Wachstum
+                und bezahlbareres Leben. Der Tracker fragt nüchtern: Kommt davon bei
+                Bürgern als Kaufkraft an, oder bleibt Wohneigentum weiter außer Reichweite?
+              </p>
             </div>
 
             <div className="status-meter" aria-label="Kurzstatus">
-              <span>Aufbaukraft seit {startYear}</span>
-              <strong>{formatSignedPercent(Math.min(homePower, landPower))}</strong>
-              <p>schwächster Wert aus Wohnung und Bauland gegen Lohntrend</p>
+              <span>Stand jetzt</span>
+              <strong>Offen</strong>
+              <p>Energie und Mindestlohn wirken kurzfristig. Steuerreform und Wohnkosten entscheiden später.</p>
             </div>
           </div>
 
-          <div className="range-strip" role="tablist" aria-label="Zeitraum wählen">
-            <span>Seit</span>
-            {ranges.map((range) => (
-              <button
-                type="button"
-                key={range.year}
-                aria-label={`Seit ${range.label}`}
-                className={range.year === startYear ? 'active' : ''}
-                onClick={() => startTransition(() => setStartYear(range.year))}
-              >
-                {range.label}
-              </button>
+          <div className="live-grid">
+            {liveSignals.map((signal) => (
+              <article className={signal.tone} key={signal.label}>
+                <span>{signal.label}</span>
+                <strong>{signal.value}</strong>
+                <p>{signal.note}</p>
+              </article>
             ))}
-          </div>
-
-          <div className="metric-grid compact">
-            <article>
-              <Banknote size={20} aria-hidden="true" />
-              <span>Nominallohn</span>
-              <strong>{formatSignedPercent(wageChange)}</strong>
-            </article>
-            <article>
-              <ReceiptText size={20} aria-hidden="true" />
-              <span>Reallohn</span>
-              <strong className={realWageChange >= 0 ? 'positive' : 'negative'}>{formatSignedPercent(realWageChange)}</strong>
-            </article>
-            <article>
-              <Home size={20} aria-hidden="true" />
-              <span>Miet-Kaufkraft</span>
-              <strong className={rentPower >= 0 ? 'positive' : 'negative'}>{formatSignedPercent(rentPower)}</strong>
-            </article>
-            <article>
-              <Building2 size={20} aria-hidden="true" />
-              <span>Wohnungskaufkraft</span>
-              <strong className={homePower >= 0 ? 'positive' : 'negative'}>{formatSignedPercent(homePower)}</strong>
-            </article>
-            <article>
-              <Landmark size={20} aria-hidden="true" />
-              <span>Bauland-Kaufkraft</span>
-              <strong className={landPower >= 0 ? 'positive' : 'negative'}>{formatSignedPercent(landPower)}</strong>
-            </article>
-            <article>
-              <TrendingUp size={20} aria-hidden="true" />
-              <span>Produktivitätslücke</span>
-              <strong>{formatSignedPoints(productivityGap)}</strong>
-            </article>
           </div>
 
           <div className="plain-answer">
             <div>
-              <p className="eyebrow">Einfach gesagt</p>
-              <h2>Früher war Sparen hart. Heute kauft Sparen oft weniger Ziel.</h2>
+              <p className="eyebrow">Auswirkung auf Bürger</p>
+              <h2>Die Regierung kann Kaufkraft kurzfristig stützen. Vermögensaufbau ist härter.</h2>
             </div>
             <p>
-              Niemand muss behaupten, früher sei alles leicht gewesen. Der Unterschied
-              ist der Abstand: Seit {startYear} stiegen Verbraucherpreise um {formatSignedPercent(inflationChange)}{' '}
-              und die Warenkorb-Kaufkraft liegt bei {formatSignedPercent(basketPower)}.
-              Mieten um {formatSignedPercent(rentChange)}, Wohnimmobilien um {formatSignedPercent(homeChange)}{' '}
-              und Bauland um {formatSignedPercent(landChange)}. Gegenüber dem Lohn
-              liegt der Immobilienabstand bei {formatSignedPoints(homeVsWageGap)},
-              bei Bauland bei {formatSignedPoints(landVsWageGap)}.
+              Reallöhne steigen wieder, aber Inflation, Energie und Wohnen bleiben der Prüfstein.
+              Seit 2010 stieg der Nominallohn in diesem Tracker um {formatSignedPercent(wageChange)},
+              der Reallohn um {formatSignedPercent(realWageChange)}, Verbraucherpreise um {formatSignedPercent(inflationChange)}
+              und Wohnimmobilien um {formatSignedPercent(homeChange)}.
+              Die Wohnungskaufkraft liegt bei {formatSignedPercent(homePower)}, Bauland bei {formatSignedPercent(landPower)}.
             </p>
           </div>
         </div>
 
-        <a className="scroll-cue" href="#charts" aria-label="Zu den Diagrammen springen">
+        <a className="scroll-cue" href="#parteien" aria-label="Zu den Parteien springen">
           <ChevronDown size={22} aria-hidden="true" />
         </a>
       </section>
 
-      <section className="section charts-section" id="charts">
+      <section className="section party-section" id="parteien">
         <div className="section-heading">
-          <p className="eyebrow">Details aufklappen</p>
-          <h2>Diagramme als Tabs</h2>
-          <p>Die Startseite bleibt simpel. Wer tiefer prüfen will, wechselt hier zwischen Kaufkraft, Produktivität, Kapital und Ranking.</p>
+          <p className="eyebrow">Parteien-Switch</p>
+          <h2>Wer verspricht was gegen Kaufkraftverlust?</h2>
+          <p>
+            Die Ansicht trennt Regierungshandeln, Parteiprogramm und wahrscheinliche Wirkung.
+            Das ist keine Wahlempfehlung, sondern ein Wirkungscheck auf Bürger, Preise, Mieten und Aufbauchancen.
+          </p>
         </div>
 
-        {isLongRange && (
-          <div className="range-disclaimer" role="note">
-            <strong>Disclaimer für {startYear} bis 2024</strong>
-            <span>
-              Langfristwerte mischen amtliche Reihen mit Proxy- und Indexreihen.
-              {isPreReunificationRange
-                ? ' Werte vor 1991 sind zusätzlich als west-/gesamtdeutsche Annäherung zu lesen.'
-                : ' Ab 1991 ist die Vergleichbarkeit besser, aber bei Wohnen und Bauland weiter vorsichtig zu lesen.'}
-            </span>
-          </div>
-        )}
-
-        <div className="chart-tabs" role="tablist" aria-label="Diagramm auswählen">
-          {chartTabs.map((tab) => (
+        <div className="party-tabs" role="tablist" aria-label="Partei auswählen">
+          {partyOrder.map((key) => (
             <button
               type="button"
-              key={tab.key}
+              key={key}
               role="tab"
-              aria-selected={activeTab === tab.key}
-              className={activeTab === tab.key ? 'active' : ''}
-              onClick={() => setActiveTab(tab.key)}
+              aria-selected={activeParty === key}
+              className={activeParty === key ? 'active' : ''}
+              onClick={() => setActiveParty(key)}
+              style={{ '--party-accent': partyProfiles[key].accent } as CSSProperties}
             >
-              {tab.label}
+              {partyProfiles[key].label}
             </button>
           ))}
         </div>
 
-        <div className="chart-stage">
-          <div className="chart-stage-header">
-            <div>
-              <p className="eyebrow">{selectedTab.label}</p>
-              <h3>{selectedTab.description}</h3>
-            </div>
-            <span>{startYear} - 2024</span>
+        <div className="party-panel" style={{ '--party-accent': selectedParty.accent } as CSSProperties}>
+          <div className="party-lead">
+            <span>{selectedParty.role}</span>
+            <h3>{selectedParty.label}</h3>
+            <p>{selectedParty.status}</p>
           </div>
-
-          <LazyChart height={360}>
-            {() => {
-              if (activeTab === 'overview') {
-                return (
-                  <EconomicChart
-                    data={selected.indexed}
-                    formatIndex={formatIndex}
-                    lines={lines}
-                    variant="indexed"
-                  />
-                )
-              }
-
-              if (activeTab === 'power') {
-                return (
-                  <EconomicChart
-                    data={selected.purchasingPower}
-                    formatIndex={formatIndex}
-                    variant="purchasingPower"
-                  />
-                )
-              }
-
-              if (activeTab === 'productivity') {
-                return <EconomicChart data={selected.gap} formatIndex={formatIndex} variant="gap" />
-              }
-
-              if (activeTab === 'capital') {
-                return <EconomicChart data={selected.range} formatIndex={formatIndex} variant="capital" />
-              }
-
-              return <EconomicChart data={rankingBars} formatIndex={formatIndex} variant="ranking" />
-            }}
-          </LazyChart>
+          <div className="party-thesis">
+            <p>{selectedParty.thesis}</p>
+            <div className="policy-grid">
+              {selectedParty.levers.map((lever) => (
+                <article key={lever}>
+                  <Check size={17} aria-hidden="true" />
+                  <span>{lever}</span>
+                </article>
+              ))}
+            </div>
+          </div>
+          <div className="impact-grid">
+            <article>
+              <span>Wirkung auf Bürger</span>
+              <strong>{selectedParty.impact}</strong>
+            </article>
+            <article>
+              <span>Offene Frage</span>
+              <strong>{selectedParty.risk}</strong>
+            </article>
+            <article>
+              <span>Quellenbasis</span>
+              <strong>{selectedParty.source}</strong>
+            </article>
+          </div>
         </div>
       </section>
 
-      <section className="section insight-grid" aria-label="Kurzerklärung">
+      <section className="section insight-grid" aria-label="Aktuelle Lage">
         <article>
           <TrendingDown size={22} aria-hidden="true" />
-          <span>Der Kern</span>
-          <strong>Reallohn ist nicht Vermögenszugang.</strong>
-          <p>Selbst wenn reale Löhne leicht steigen, können Haus und Grundstück relativ zum Einkommen schneller wegziehen.</p>
+          <span>Regierungsfrage</span>
+          <strong>Entlastung reicht nur, wenn sie schneller wirkt als Preise.</strong>
+          <p>Eine sinkende Umlage hilft. Aber Miete, Energie und Versicherungen können den Effekt wieder auffressen.</p>
         </article>
         <article>
           <BarChart3 size={22} aria-hidden="true" />
-          <span>Die faire Einordnung</span>
-          <strong>Ältere Generationen mussten auch verzichten.</strong>
-          <p>Der Tracker fragt nicht, ob früher alles einfach war. Er fragt, was der gleiche Verzicht heute noch kaufen kann.</p>
+          <span>Kaufkraft</span>
+          <strong>Reallohn steigt, Vermögenszugang bleibt das Problem.</strong>
+          <p>Der Warenkorb ist nicht das Haus. Für Aufbau zählt Einkommen relativ zu Wohn- und Bodenpreisen.</p>
         </article>
         <article>
           <RefreshCw size={22} aria-hidden="true" />
-          <span>Warum mehrere Zeiträume?</span>
-          <strong>Seit 1950 zeigt Geschichte, seit 2010 die heutige Hürde.</strong>
-          <p>Lange Reihen zeigen Strukturwandel. Jüngere Reihen sind methodisch belastbarer und für heutige Käufer direkter.</p>
+          <span>Tempo</span>
+          <strong>Die Seite lädt Charts erst im Datenarchiv.</strong>
+          <p>Der politische Tracker bleibt leicht. Diagramme werden nur geladen, wenn du sie wirklich öffnest.</p>
         </article>
+      </section>
+
+      <section className="section data-section" id="daten">
+        <div className="section-heading">
+          <p className="eyebrow">Datenarchiv</p>
+          <h2>Diagramme sind ausgelagert</h2>
+          <p>
+            Für Geschwindigkeit bleibt die Startseite ohne Chart-Render. Wer prüfen will,
+            kann das Archiv öffnen und Zeitraum sowie Diagramm wählen.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          className="data-toggle"
+          aria-expanded={showCharts}
+          onClick={() => setShowCharts((current) => !current)}
+        >
+          {showCharts ? 'Datenarchiv schließen' : 'Datenarchiv öffnen'}
+          <LineChartIcon size={18} aria-hidden="true" />
+        </button>
+
+        {showCharts && (
+          <div className="data-archive">
+            <div className="range-strip" role="tablist" aria-label="Zeitraum wählen">
+              <span>Seit</span>
+              {ranges.map((range) => (
+                <button
+                  type="button"
+                  key={range.year}
+                  aria-label={`Seit ${range.label}`}
+                  className={range.year === startYear ? 'active' : ''}
+                  onClick={() => startTransition(() => setStartYear(range.year))}
+                >
+                  {range.label}
+                </button>
+              ))}
+            </div>
+
+            {isLongRange && (
+              <div className="range-disclaimer" role="note">
+                <strong>Disclaimer für {startYear} bis 2024</strong>
+                <span>
+                  Langfristwerte mischen amtliche Reihen mit Proxy- und Indexreihen.
+                  {isPreReunificationRange
+                    ? ' Werte vor 1991 sind zusätzlich als west-/gesamtdeutsche Annäherung zu lesen.'
+                    : ' Ab 1991 ist die Vergleichbarkeit besser, aber bei Wohnen und Bauland weiter vorsichtig zu lesen.'}
+                </span>
+              </div>
+            )}
+
+            <div className="metric-grid compact">
+              <article>
+                <Banknote size={20} aria-hidden="true" />
+                <span>Nominallohn</span>
+                <strong>{formatSignedPercent(wageChange)}</strong>
+              </article>
+              <article>
+                <ReceiptText size={20} aria-hidden="true" />
+                <span>Reallohn</span>
+                <strong className={realWageChange >= 0 ? 'positive' : 'negative'}>{formatSignedPercent(realWageChange)}</strong>
+              </article>
+              <article>
+                <Home size={20} aria-hidden="true" />
+                <span>Warenkorb</span>
+                <strong className={basketPower >= 0 ? 'positive' : 'negative'}>{formatSignedPercent(basketPower)}</strong>
+              </article>
+              <article>
+                <Building2 size={20} aria-hidden="true" />
+                <span>Wohnung</span>
+                <strong className={homePower >= 0 ? 'positive' : 'negative'}>{formatSignedPercent(homePower)}</strong>
+              </article>
+              <article>
+                <Landmark size={20} aria-hidden="true" />
+                <span>Bauland</span>
+                <strong className={landPower >= 0 ? 'positive' : 'negative'}>{formatSignedPercent(landPower)}</strong>
+              </article>
+              <article>
+                <TrendingUp size={20} aria-hidden="true" />
+                <span>Produktivitätslücke</span>
+                <strong>{formatSignedPoints(productivityGap)}</strong>
+              </article>
+            </div>
+
+            <div className="chart-tabs" role="tablist" aria-label="Diagramm auswählen">
+              {chartTabs.map((tab) => (
+                <button
+                  type="button"
+                  key={tab.key}
+                  role="tab"
+                  aria-selected={activeTab === tab.key}
+                  className={activeTab === tab.key ? 'active' : ''}
+                  onClick={() => setActiveTab(tab.key)}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="chart-stage">
+              <div className="chart-stage-header">
+                <div>
+                  <p className="eyebrow">{selectedTab.label}</p>
+                  <h3>{selectedTab.description}</h3>
+                </div>
+                <span>{startYear} - 2024</span>
+              </div>
+
+              <div className="chart-shell" style={{ minHeight: 360 }}>
+                <Suspense fallback={<ChartPlaceholder height={360} />}>
+                  {activeTab === 'overview' && (
+                    <EconomicChart data={selected.indexed} formatIndex={formatIndex} lines={lines} variant="indexed" />
+                  )}
+                  {activeTab === 'power' && (
+                    <EconomicChart data={selected.purchasingPower} formatIndex={formatIndex} variant="purchasingPower" />
+                  )}
+                  {activeTab === 'productivity' && (
+                    <EconomicChart data={selected.gap} formatIndex={formatIndex} variant="gap" />
+                  )}
+                  {activeTab === 'capital' && (
+                    <EconomicChart data={selected.range} formatIndex={formatIndex} variant="capital" />
+                  )}
+                  {activeTab === 'ranking' && (
+                    <EconomicChart data={rankingBars} formatIndex={formatIndex} variant="ranking" />
+                  )}
+                </Suspense>
+              </div>
+            </div>
+          </div>
+        )}
       </section>
 
       <section className="section method" id="methodik">
         <div className="section-heading">
           <p className="eyebrow">Methodik</p>
-          <h2>Was der Tracker misst</h2>
+          <h2>Was die Seite jetzt bewertet</h2>
         </div>
         <div className="method-grid">
           {[
-            'Index 100 bedeutet: Startwert des gewählten Zeitraums.',
-            'Reallohn ist der inflationsbereinigte Lohn und damit Kaufkraft des Verdienstes.',
-            'Wohnungs- und Bauland-Kaufkraft rechnet Lohn gegen Vermögenspreise, nicht gegen Alltagspreise.',
-            'Produktivität ist nicht automatisch Lohn, zeigt aber den verteilbaren Output pro Arbeitsstunde.',
-            'Piketty/Zucman/WID liefern Verteilungskontext: Wenn Vermögen relativ zum Einkommen steigt, wird Besitz wichtiger.',
-            'Ältere Starts bleiben sichtbar, sind aber mit Methodenbruch und Proxy-Reihen zu lesen.',
+            'Regierungswirkung heißt: Was ist beschlossen, was ist angekündigt, was kommt bei Bürgern an?',
+            'Parteien werden nach Hebeln sortiert: Lohn, Steuern, Energie, Miete, Wohneigentum.',
+            'Kurzfristige Kaufkraft ist nicht dasselbe wie langfristiger Vermögensaufbau.',
+            'Charts sind nur Archiv: Sie erklären die Langfristlage, dominieren aber nicht mehr die Seite.',
+            'Politisch neutral heißt: Wirkung und Risiko werden je Partei sichtbar gemacht.',
+            'Aktuelle News sind als statischer Datenstand eingebaut, damit GitHub Pages schnell bleibt.',
           ].map((item) => (
             <div className="method-item" key={item}>
               <Check size={18} aria-hidden="true" />
@@ -518,9 +740,9 @@ function App() {
           ))}
         </div>
         <p className="fineprint">
-          Datenstand: 04.06.2026. Lohn- und Verbraucherpreisdaten sind eng an Destatis-Jahresraten ausgerichtet.
-          Wohnen nutzt ab 2010 den vdp-Immobilienpreisindex; ältere Wohn- und Baulandwerte sind wegen eingeschränkter
-          Vergleichbarkeit vorsichtige Näherungen.
+          Datenstand: 06.06.2026. Amtliche Kurzfristdaten stammen von Destatis; Regierungsvorhaben
+          aus Bundesregierung/Bundestag; Parteieinschätzungen aus Programmen, Fraktionspositionen
+          und Koalitionsvertrag. Die Langfristdaten bleiben Näherungen und sind als Kontext zu lesen.
         </p>
       </section>
 
@@ -528,7 +750,7 @@ function App() {
         <div className="section-heading">
           <p className="eyebrow">Nachprüfbar</p>
           <h2>Quellen</h2>
-          <p>Politisch neutral heißt hier: Aussage, Datenreihe und Einschränkung bleiben getrennt.</p>
+          <p>Jede politische Aussage soll auf Regierung, Bundestag, Partei oder amtliche Statistik zurückführbar sein.</p>
         </div>
         <div className="source-grid">
           {sources.map((source) => (
