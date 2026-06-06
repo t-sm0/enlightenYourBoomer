@@ -791,11 +791,6 @@ h3 {
 
   .chart-shell {
     padding: 8px;
-    overflow-x: auto;
-  }
-
-  .lite-chart {
-    min-width: 620px;
   }
 
   .range-disclaimer {
