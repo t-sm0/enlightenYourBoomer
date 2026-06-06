@@ -1,19 +1,20 @@
-import { type ReactNode, lazy, startTransition, Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { type ReactNode, lazy, startTransition, Suspense, useEffect, useMemo, useState } from 'react'
 import {
-  ArrowUpRight,
   Banknote,
+  BarChart3,
   Building2,
   Check,
+  ChevronDown,
   ExternalLink,
   Home,
   Landmark,
   LineChart as LineChartIcon,
   Moon,
   ReceiptText,
-  Scale,
+  RefreshCw,
   Sun,
+  TrendingDown,
   TrendingUp,
-  WalletCards,
 } from 'lucide-react'
 import './App.css'
 
@@ -45,6 +46,7 @@ type Source = {
 }
 
 type ThemeMode = 'dark' | 'light'
+type ChartTab = 'overview' | 'power' | 'productivity' | 'capital' | 'ranking'
 
 const sources: Source[] = [
   {
@@ -79,7 +81,7 @@ const sources: Source[] = [
     tag: 'Produktivität',
     name: 'OECD: GDP per hour worked',
     detail:
-      'BIP je Arbeitsstunde als Produktivitätsmaß; die OECD weist zugleich darauf hin, dass es nicht nur individuelle Leistung misst.',
+      'BIP je Arbeitsstunde als Produktivitätsmaß; die OECD weist darauf hin, dass es nicht nur individuelle Leistung misst.',
     url: 'https://www.oecd.org/en/data/indicators/gdp-per-hour-worked.html',
   },
   {
@@ -111,20 +113,28 @@ const anchors: AnchorPoint[] = [
 ]
 
 const ranges = [
-  { label: 'Seit 1950', year: 1950 },
-  { label: 'Seit 1970', year: 1970 },
-  { label: 'Seit 1991', year: 1991 },
-  { label: 'Seit 2010', year: 2010 },
-  { label: 'Seit 2020', year: 2020 },
+  { label: '1950', year: 1950 },
+  { label: '1970', year: 1970 },
+  { label: '1991', year: 1991 },
+  { label: '2010', year: 2010 },
+  { label: '2020', year: 2020 },
 ]
 
 const lines = [
-  { key: 'wagesNominal' as MetricKey, label: 'Bruttolohn nominal', color: '#176b73' },
-  { key: 'realWage' as MetricKey, label: 'Reallohn / Kaufkraft', color: '#0d9a6d' },
-  { key: 'consumerPrices' as MetricKey, label: 'Lebenshaltung', color: '#c55331' },
-  { key: 'rents' as MetricKey, label: 'Mieten', color: '#884b95' },
-  { key: 'homes' as MetricKey, label: 'Wohnimmobilien', color: '#d78114' },
-  { key: 'productivity' as MetricKey, label: 'Produktivität', color: '#334155' },
+  { key: 'wagesNominal' as MetricKey, label: 'Bruttolohn nominal', color: '#2f8cff' },
+  { key: 'realWage' as MetricKey, label: 'Reallohn / Kaufkraft', color: '#15c78f' },
+  { key: 'consumerPrices' as MetricKey, label: 'Lebenshaltung', color: '#ff6b4a' },
+  { key: 'rents' as MetricKey, label: 'Mieten', color: '#b16cff' },
+  { key: 'homes' as MetricKey, label: 'Wohnimmobilien', color: '#ffb020' },
+  { key: 'productivity' as MetricKey, label: 'Produktivität', color: '#7c8ca6' },
+]
+
+const chartTabs: Array<{ key: ChartTab; label: string; description: string }> = [
+  { key: 'overview', label: 'Indizes', description: 'Alle Reihen auf denselben Startwert gesetzt.' },
+  { key: 'power', label: 'Kaufkraft', description: 'Lohn geteilt durch Preise, Mieten und Vermögenspreise.' },
+  { key: 'productivity', label: 'Lücke', description: 'Produktivität und Wohnen im Abstand zu Lohn/Kaufkraft.' },
+  { key: 'capital', label: 'Kapital', description: 'Piketty/Zucman-Kontext: Vermögen relativ zu Einkommen.' },
+  { key: 'ranking', label: 'Ranking', description: 'Was im gewählten Zeitraum am stärksten gestiegen ist.' },
 ]
 
 const interpolate = (start: AnchorPoint, end: AnchorPoint, year: number, key: MetricKey) => {
@@ -166,13 +176,6 @@ const formatSignedPercent = (value: number) =>
 const formatSignedPoints = (value: number) =>
   `${value >= 0 ? '+' : ''}${formatIndex(value)} Pkt.`
 
-const formatEuro = (value: number) =>
-  value.toLocaleString('de-DE', {
-    maximumFractionDigits: 0,
-    style: 'currency',
-    currency: 'EUR',
-  })
-
 const indexFrom = (value: number, base: number) => (value / base) * 100
 
 type LazyChartProps = {
@@ -185,62 +188,28 @@ function ChartPlaceholder({ height }: { height: number }) {
   return (
     <div className="chart-placeholder" style={{ minHeight: Math.max(220, height - 42) }}>
       <LineChartIcon size={24} aria-hidden="true" />
-      <span>Grafik wird beim Scrollen geladen</span>
+      <span>Grafik wird geladen</span>
     </div>
   )
 }
 
 function LazyChart({ children, className = 'chart-shell', height }: LazyChartProps) {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const [shouldRender, setShouldRender] = useState(false)
-
-  useEffect(() => {
-    const container = containerRef.current
-    if (!container) return
-
-    if (!('IntersectionObserver' in window)) {
-      const fallback = globalThis.setTimeout(() => setShouldRender(true), 0)
-      return () => globalThis.clearTimeout(fallback)
-    }
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setShouldRender(entry.isIntersecting)
-      },
-      { rootMargin: '360px 0px' },
-    )
-
-    observer.observe(container)
-    return () => observer.disconnect()
-  }, [])
-
   return (
-    <div ref={containerRef} className={className} style={{ minHeight: height }}>
-      {shouldRender ? (
-        <Suspense fallback={<ChartPlaceholder height={height} />}>{children()}</Suspense>
-      ) : (
-        <ChartPlaceholder height={height} />
-      )}
+    <div className={className} style={{ minHeight: height }}>
+      <Suspense fallback={<ChartPlaceholder height={height} />}>{children()}</Suspense>
     </div>
   )
 }
 
 function App() {
   const [startYear, setStartYear] = useState(2010)
+  const [activeTab, setActiveTab] = useState<ChartTab>('power')
   const [theme, setTheme] = useState<ThemeMode>(() => {
     const savedTheme = window.localStorage.getItem('eyb-theme')
     if (savedTheme === 'dark' || savedTheme === 'light') return savedTheme
 
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
   })
-
-  useEffect(() => {
-    if (!window.location.hash) return
-
-    window.requestAnimationFrame(() => {
-      document.querySelector(window.location.hash)?.scrollIntoView()
-    })
-  }, [])
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -280,111 +249,55 @@ function App() {
     return { range, base, latest, indexed, purchasingPower, gap }
   }, [startYear])
 
-  const heroBase = yearlyData.find((point) => point.year === 2010) ?? yearlyData[0]
-  const heroLatest = yearlyData[yearlyData.length - 1]
-  const realSince2010 = indexFrom(heroLatest.realWage, heroBase.realWage) - 100
-  const nominalSince2010 = indexFrom(heroLatest.wagesNominal, heroBase.wagesNominal) - 100
-  const housingPower = indexFrom(heroLatest.wagesNominal / heroLatest.homes, heroBase.wagesNominal / heroBase.homes) - 100
-  const landPower = indexFrom(heroLatest.wagesNominal / heroLatest.land, heroBase.wagesNominal / heroBase.land) - 100
-  const currentPower = selected.purchasingPower[selected.purchasingPower.length - 1]
-  const productivityGap = selected.gap[selected.gap.length - 1]['Produktivität minus Reallohn']
   const wageChange = indexFrom(selected.latest.wagesNominal, selected.base.wagesNominal) - 100
   const realWageChange = indexFrom(selected.latest.realWage, selected.base.realWage) - 100
-  const consumerPriceChange = indexFrom(selected.latest.consumerPrices, selected.base.consumerPrices) - 100
+  const inflationChange = indexFrom(selected.latest.consumerPrices, selected.base.consumerPrices) - 100
+  const rentChange = indexFrom(selected.latest.rents, selected.base.rents) - 100
   const homeChange = indexFrom(selected.latest.homes, selected.base.homes) - 100
   const landChange = indexFrom(selected.latest.land, selected.base.land) - 100
-  const homeVsWageGap = homeChange - wageChange
-  const landVsWageGap = landChange - wageChange
+  const currentPower = selected.purchasingPower[selected.purchasingPower.length - 1]
   const basketPower = currentPower.Warenkorb - 100
   const rentPower = currentPower.Miete - 100
   const homePower = currentPower.Wohnung - 100
-  const landAssetPower = currentPower.Bauland - 100
-  const selectedRanking = [
-    { label: 'Bauland', value: landChange },
+  const landPower = currentPower.Bauland - 100
+  const productivityGap = selected.gap[selected.gap.length - 1]['Produktivität minus Reallohn']
+  const homeVsWageGap = homeChange - wageChange
+  const landVsWageGap = landChange - wageChange
+  const isLongRange = startYear < 2010
+  const isPreReunificationRange = startYear < 1991
+  const selectedTab = chartTabs.find((tab) => tab.key === activeTab) ?? chartTabs[0]
+  const rankingBars = [
+    { name: 'Bauland', value: landChange, fill: '#8f6b2a' },
     ...lines.map((line) => ({
-      label: line.label,
-      value: indexFrom(selected.latest[line.key], selected.base[line.key]) - 100,
-    })),
-  ].sort((a, b) => b.value - a.value)
-  const topMover = selectedRanking[0]
-  const rankingBars = lines
-    .map((line) => ({
       name: line.label,
       value: indexFrom(selected.latest[line.key], selected.base[line.key]) - 100,
       fill: line.color,
-    }))
-    .sort((a, b) => b.value - a.value)
-  const isNominalTopMover = topMover.label === 'Bruttolohn nominal'
-  const resultHeadline =
-    startYear < 1970
-      ? 'Die sehr lange Kurve zeigt den Nachkriegs-Aufholprozess. Für die heutige Einstiegshürde ist vor allem der Blick ab 1991 und ab 2010 entscheidend.'
-      : startYear < 2010
-        ? 'Die Langfristkurve zeigt: Alltag, Produktivität und Vermögenspreise laufen nicht im selben Takt. Besonders Bauland wird relativ zum Lohn knapper.'
-        : startYear < 2020
-          ? 'Seit 2010 wird sichtbar: Reallohn steigt nur wenig, Wohnen und Bauland laufen dem Lohn davon.'
-          : 'Seit 2020 ist das Bild gemischt: Immobilienpreise korrigieren zeitweise, aber Inflation und Bauland drücken weiter.'
-  const assetPressureSentence =
-    homePower < 0 || landAssetPower < 0
-      ? 'Das ist der Punkt, an dem Sparen weniger Vermögenszugang kauft.'
-      : 'In diesem langen Fenster sieht man auch frühere Aufholphasen; deshalb ist der jüngere Vergleich zusätzlich wichtig.'
-  const assetPowerSentence =
-    homePower < 0 && landAssetPower < 0
-      ? 'Beim Einstieg in Wohneigentum zählt aber Lohn geteilt durch Kaufpreis: Dort ist die Kaufkraft deutlich schwächer.'
-      : homePower < 0 || landAssetPower < 0
-        ? 'Beim Einstieg in Vermögen ist das Bild gemischt: Eine Linie hält mit, die andere läuft dem Lohn davon.'
-        : 'Im sehr langen Fenster sieht man den Nachkriegs-Aufholprozess. Für heutige Einstiegshürden sind deshalb die jüngeren Zeiträume aussagekräftiger.'
-  const isLongRange = startYear < 2010
-  const isPreReunificationRange = startYear < 1991
-  const salaryExample = 10000
-  const salaryToday = salaryExample * (selected.latest.wagesNominal / selected.base.wagesNominal)
-  const sameBasketSalary = salaryExample * (selected.latest.consumerPrices / selected.base.consumerPrices)
-  const sameRentSalary = salaryExample * (selected.latest.rents / selected.base.rents)
-  const sameHomeSalary = salaryExample * (selected.latest.homes / selected.base.homes)
-  const sameLandSalary = salaryExample * (selected.latest.land / selected.base.land)
-  const baseHouseYears = 5
-  const homeYearsToday =
-    baseHouseYears *
-    (heroLatest.homes / heroBase.homes) /
-    (heroLatest.wagesNominal / heroBase.wagesNominal)
-  const landYearsToday =
-    baseHouseYears *
-    (heroLatest.land / heroBase.land) /
-    (heroLatest.wagesNominal / heroBase.wagesNominal)
+    })),
+  ].sort((a, b) => b.value - a.value)
+
+  const status = homePower < -10 || landPower < -10 ? 'Nein' : 'Teilweise'
+  const statusCopy =
+    homePower < -10 || landPower < -10
+      ? 'Ein Gehalt kauft heute weniger Einstieg in Wohneigentum und Bauland als am Startpunkt.'
+      : 'Im langen Nachkriegsfenster sieht man Aufholphasen. Für heutige Einstiegshürden ist der jüngere Zeitraum aussagekräftiger.'
+  const liveUpdated = 'Datenstand 2024, geprüft 06/2026'
 
   return (
     <main>
-      <div className="floating-range-switcher" role="tablist" aria-label="Zeitraum dauerhaft wählen">
-        <span>Zeitraum</span>
-        <div className="range-tabs">
-          {ranges.map((range) => (
-            <button
-              type="button"
-              key={range.year}
-              aria-label={range.label}
-              className={range.year === startYear ? 'active' : ''}
-              onClick={() => startTransition(() => setStartYear(range.year))}
-            >
-              <span className="range-full">{range.label}</span>
-              <span className="range-short">{range.year}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <section className="hero-section">
+      <section className="tracker-shell">
         <nav className="topbar" aria-label="Seitennavigation">
-          <a href="#kaufkraft" className="brand">
+          <a href="#top" className="brand">
             <span className="brand-mark">eYB</span>
-            enlightenYourBoomer
+            <span>enlightenYourBoomer</span>
           </a>
           <div className="nav-links">
-            <a href="#kaufkraft">Kaufkraft</a>
-            <a href="#produktivitaet">Produktivität</a>
+            <a href="#charts">Charts</a>
+            <a href="#methodik">Methodik</a>
             <a href="#quellen">Quellen</a>
           </div>
           <button
             type="button"
-            className="theme-toggle"
+            className="icon-button"
             aria-label={theme === 'dark' ? 'Light Mode aktivieren' : 'Dark Mode aktivieren'}
             onClick={() => setTheme((current) => (current === 'dark' ? 'light' : 'dark'))}
           >
@@ -392,368 +305,230 @@ function App() {
           </button>
         </nav>
 
-        <div className="hero-grid">
-          <div className="hero-copy">
-            <p className="eyebrow">Für alle, die sagen: „Wir mussten früher auch sparen.“</p>
-            <h1>Früher sparen. Heute reicht sparen oft nicht mehr.</h1>
-            <p className="lede">
-              Niemand bestreitet, dass frühere Generationen verzichten mussten.
-              Der Unterschied ist: Wohnen, Bauland und Vermögen sind relativ zum
-              Einkommen schneller weggezogen. Aus Verzicht wurde früher eher Eigentum.
-              Heute wird aus Verzicht oft nur Schadensbegrenzung.
-            </p>
-            <div className="hero-actions">
-              <a className="primary-link" href="#kaufkraft">
-                <LineChartIcon size={18} aria-hidden="true" />
-                Kaufkraft ansehen
-              </a>
-              <a className="secondary-link" href="#methodik">
-                Methodik
-                <ArrowUpRight size={18} aria-hidden="true" />
-              </a>
+        <div className="tracker-card" id="top">
+          <div className="tracker-kicker">
+            <span className="live-dot" aria-hidden="true" />
+            Live-Tracker
+            <span>{liveUpdated}</span>
+          </div>
+
+          <div className="status-grid">
+            <div className="status-copy">
+              <p className="eyebrow">Kann man sich mit Gehalt noch gleich viel aufbauen?</p>
+              <h1>{status}</h1>
+              <p className="lede">{statusCopy}</p>
+            </div>
+
+            <div className="status-meter" aria-label="Kurzstatus">
+              <span>Aufbaukraft seit {startYear}</span>
+              <strong>{formatSignedPercent(Math.min(homePower, landPower))}</strong>
+              <p>schwächster Wert aus Wohnung und Bauland gegen Lohntrend</p>
             </div>
           </div>
 
-          <div className="truth-panel" aria-label="Kurzfazit seit 2010">
-            <div className="truth-card strong">
-              <WalletCards size={24} aria-hidden="true" />
-              <span>Nominaler Lohn</span>
-              <strong>+{formatIndex(nominalSince2010)}%</strong>
-            </div>
-            <div className="truth-card">
-              <ReceiptText size={24} aria-hidden="true" />
-              <span>Reale Kaufkraft</span>
-              <strong>+{formatIndex(realSince2010)}%</strong>
-            </div>
-            <div className="truth-card danger">
-              <Building2 size={24} aria-hidden="true" />
+          <div className="range-strip" role="tablist" aria-label="Zeitraum wählen">
+            <span>Seit</span>
+            {ranges.map((range) => (
+              <button
+                type="button"
+                key={range.year}
+                aria-label={`Seit ${range.label}`}
+                className={range.year === startYear ? 'active' : ''}
+                onClick={() => startTransition(() => setStartYear(range.year))}
+              >
+                {range.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="metric-grid compact">
+            <article>
+              <Banknote size={20} aria-hidden="true" />
+              <span>Nominallohn</span>
+              <strong>{formatSignedPercent(wageChange)}</strong>
+            </article>
+            <article>
+              <ReceiptText size={20} aria-hidden="true" />
+              <span>Reallohn</span>
+              <strong className={realWageChange >= 0 ? 'positive' : 'negative'}>{formatSignedPercent(realWageChange)}</strong>
+            </article>
+            <article>
+              <Home size={20} aria-hidden="true" />
+              <span>Miet-Kaufkraft</span>
+              <strong className={rentPower >= 0 ? 'positive' : 'negative'}>{formatSignedPercent(rentPower)}</strong>
+            </article>
+            <article>
+              <Building2 size={20} aria-hidden="true" />
               <span>Wohnungskaufkraft</span>
-              <strong>{formatIndex(housingPower)}%</strong>
-            </div>
-            <div className="truth-card danger">
-              <Landmark size={24} aria-hidden="true" />
+              <strong className={homePower >= 0 ? 'positive' : 'negative'}>{formatSignedPercent(homePower)}</strong>
+            </article>
+            <article>
+              <Landmark size={20} aria-hidden="true" />
               <span>Bauland-Kaufkraft</span>
-              <strong>{formatIndex(landPower)}%</strong>
-            </div>
+              <strong className={landPower >= 0 ? 'positive' : 'negative'}>{formatSignedPercent(landPower)}</strong>
+            </article>
+            <article>
+              <TrendingUp size={20} aria-hidden="true" />
+              <span>Produktivitätslücke</span>
+              <strong>{formatSignedPoints(productivityGap)}</strong>
+            </article>
           </div>
-        </div>
-      </section>
 
-      <section className="section intro">
-        <div className="explain-card">
-          <Scale size={28} aria-hidden="true" />
-          <div>
-            <p className="eyebrow">Die faire Antwort</p>
-            <h2>Ja, früher war Sparen hart. Aber das Ziel war näher.</h2>
+          <div className="plain-answer">
+            <div>
+              <p className="eyebrow">Einfach gesagt</p>
+              <h2>Früher war Sparen hart. Heute kauft Sparen oft weniger Ziel.</h2>
+            </div>
             <p>
-              Der Punkt ist nicht: „Früher war alles leicht.“ Der Punkt ist:
-              Wer damals auf Urlaub, Auto oder Konsum verzichtet hat, konnte mit
-              diesem Verzicht häufiger ein Haus abbezahlen und Vermögen aufbauen.
-              Heute muss man oft ähnlich hart sparen, aber das Ziel bewegt sich
-              schneller vom Einkommen weg.
+              Niemand muss behaupten, früher sei alles leicht gewesen. Der Unterschied
+              ist der Abstand: Seit {startYear} stiegen Verbraucherpreise um {formatSignedPercent(inflationChange)}{' '}
+              und die Warenkorb-Kaufkraft liegt bei {formatSignedPercent(basketPower)}.
+              Mieten um {formatSignedPercent(rentChange)}, Wohnimmobilien um {formatSignedPercent(homeChange)}{' '}
+              und Bauland um {formatSignedPercent(landChange)}. Gegenüber dem Lohn
+              liegt der Immobilienabstand bei {formatSignedPoints(homeVsWageGap)},
+              bei Bauland bei {formatSignedPoints(landVsWageGap)}.
             </p>
           </div>
         </div>
 
-        <div className="story-rail" aria-label="Kurz erklärt">
-          <article>
-            <span>1</span>
-            <strong>Sparen ist nicht der Streitpunkt</strong>
-            <p>Natürlich mussten Familien früher verzichten. Das war real und oft hart.</p>
-          </article>
-          <article>
-            <span>2</span>
-            <strong>Der Preis des Ziels zählt</strong>
-            <p>Entscheidend ist, wie viele Jahresgehälter Haus, Grundstück und Sicherheit kosten.</p>
-          </article>
-          <article>
-            <span>3</span>
-            <strong>Heute läuft das Ziel weg</strong>
-            <p>Wenn Vermögenspreise schneller steigen als Löhne, reicht derselbe Verzicht weniger weit.</p>
-          </article>
-        </div>
-
-        <div className="objection-panel">
-          <div className="quote-card">
-            <p>„Wir konnten früher auch nicht in den Urlaub fahren, weil der Hauskredit bezahlt werden musste.“</p>
-            <strong>Stimmt. Aber der Kredit kaufte damals häufiger den Einstieg in Vermögen.</strong>
-          </div>
-          <div className="answer-grid">
-            <article>
-              <span>Wenn ein Haus 2010</span>
-              <strong>{formatIndex(baseHouseYears)} Jahresgehälter</strong>
-              <p>gekostet hätte, läge derselbe Immobilienpreisindex heute bei</p>
-              <b>{formatIndex(homeYearsToday)} Jahresgehältern.</b>
-            </article>
-            <article>
-              <span>Bei Bauland wäre es härter</span>
-              <strong>{formatIndex(baseHouseYears)} → {formatIndex(landYearsToday)}</strong>
-              <p>Jahresgehälter für dieselbe Kaufkraft gegenüber Grundstückspreisen.</p>
-              <b>Der Abstand wird mit jedem Jahr Sparen größer.</b>
-            </article>
-            <article>
-              <span>Der Unterschied</span>
-              <strong>Konsumverzicht ≠ Vermögenszugang</strong>
-              <p>Auf Urlaub verzichten spart Geld. Aber wenn das Haus schneller steigt als das Gehalt, kauft der Verzicht weniger Zukunft.</p>
-              <b>Das ist der Generationenbruch.</b>
-            </article>
-          </div>
-        </div>
+        <a className="scroll-cue" href="#charts" aria-label="Zu den Diagrammen springen">
+          <ChevronDown size={22} aria-hidden="true" />
+        </a>
       </section>
 
-      <section className="section" id="kaufkraft">
+      <section className="section charts-section" id="charts">
         <div className="section-heading">
-          <p className="eyebrow">Zeitspanne wählen</p>
-          <h2>Was passiert mit dem Gehalt?</h2>
-          <p>
-            Die jüngeren Zeiträume sind am saubersten vergleichbar. Ältere Starts
-            sind wieder auswählbar, aber als Langfrist-Orientierung: Sie zeigen die
-            Richtung der Verschiebung, nicht den exakten Preis eines konkreten Hauses
-            in einem konkreten Ort.
-          </p>
+          <p className="eyebrow">Details aufklappen</p>
+          <h2>Diagramme als Tabs</h2>
+          <p>Die Startseite bleibt simpel. Wer tiefer prüfen will, wechselt hier zwischen Kaufkraft, Produktivität, Kapital und Ranking.</p>
         </div>
 
         {isLongRange && (
           <div className="range-disclaimer" role="note">
-            <strong>Disclaimer für {startYear} bis 2024:</strong>
+            <strong>Disclaimer für {startYear} bis 2024</strong>
             <span>
-              Dieser Langfristmodus mischt amtliche Preis- und Lohnreihen mit Proxy-
-              und Indexreihen für Wohnen, Bauland, Produktivität und Vermögen.
+              Langfristwerte mischen amtliche Reihen mit Proxy- und Indexreihen.
               {isPreReunificationRange
                 ? ' Werte vor 1991 sind zusätzlich als west-/gesamtdeutsche Annäherung zu lesen.'
-                : ' Ab 1991 ist die Vergleichbarkeit besser, aber bei Wohnen und Bauland weiterhin nicht so hart wie ab 2010.'}
+                : ' Ab 1991 ist die Vergleichbarkeit besser, aber bei Wohnen und Bauland weiter vorsichtig zu lesen.'}
             </span>
           </div>
         )}
 
-        <div className="summary-grid">
-          <article>
-            <Banknote size={22} aria-hidden="true" />
-            <span>Reallohn</span>
-            <strong>{formatSignedPercent(realWageChange)}</strong>
-            <p>seit {startYear}</p>
-          </article>
-          <article>
-            <Home size={22} aria-hidden="true" />
-            <span>Miet-Kaufkraft</span>
-            <strong>{formatSignedPercent(rentPower)}</strong>
-            <p>Lohn geteilt durch Mietindex</p>
-          </article>
-          <article>
-            <Building2 size={22} aria-hidden="true" />
-            <span>Wohnungs-Kaufkraft</span>
-            <strong>{formatSignedPercent(homePower)}</strong>
-            <p>Lohn geteilt durch Kaufpreise</p>
-          </article>
-          <article>
-            <TrendingUp size={22} aria-hidden="true" />
-            <span>Produktivitätslücke</span>
-            <strong>{formatSignedPoints(productivityGap)}</strong>
-            <p>Produktivität über Reallohn</p>
-          </article>
+        <div className="chart-tabs" role="tablist" aria-label="Diagramm auswählen">
+          {chartTabs.map((tab) => (
+            <button
+              type="button"
+              key={tab.key}
+              role="tab"
+              aria-selected={activeTab === tab.key}
+              className={activeTab === tab.key ? 'active' : ''}
+              onClick={() => setActiveTab(tab.key)}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
-        <div className="result-explainer" aria-label="Erklärung der Ergebnisgrafiken">
-          <div>
-            <p className="eyebrow">Ergebnis lesen</p>
-            <h3>{resultHeadline}</h3>
+        <div className="chart-stage">
+          <div className="chart-stage-header">
+            <div>
+              <p className="eyebrow">{selectedTab.label}</p>
+              <h3>{selectedTab.description}</h3>
+            </div>
+            <span>{startYear} - 2024</span>
           </div>
-          <div className="result-grid">
-            <article>
-              <span>1. Lohn gegen Inflation</span>
-              <strong>
-                Nominal {formatSignedPercent(wageChange)}, real {formatSignedPercent(realWageChange)}
-              </strong>
-              <p>
-                Der Bruttolohn ist seit {startYear} deutlich gestiegen. Entscheidend
-                für Alltag und Sparfähigkeit ist aber der Reallohn: Nach
-                Verbraucherpreisen ({formatSignedPercent(consumerPriceChange)}) bleiben
-                davon {formatSignedPercent(realWageChange)}.
-              </p>
-            </article>
-            <article>
-              <span>2. Alltag gegen Vermögensaufbau</span>
-              <strong>
-                Wohnung {formatSignedPercent(homePower)}, Bauland {formatSignedPercent(landAssetPower)}
-              </strong>
-              <p>
-                Für den Warenkorb liegt die Lohn-Kaufkraft bei {formatSignedPercent(basketPower)}.
-                Gegenüber Mieten sind es {formatSignedPercent(rentPower)}. {assetPowerSentence}
-              </p>
-            </article>
-            <article>
-              <span>3. Warum Sparen anders wirkt</span>
-              <strong>{topMover.label} läuft vorne</strong>
-              <p>
-                Die Rangliste zeigt: {topMover.label} stieg seit {startYear} am
-                stärksten. {isNominalTopMover
-                  ? 'Wenn der Nominallohn vorne liegt, ist das kein Wohlstandsbeweis: Inflation und Preisniveau stecken darin.'
-                  : `Wohnimmobilien liegen ${formatSignedPoints(homeVsWageGap)} und Bauland ${formatSignedPoints(landVsWageGap)} relativ zum Nominallohn.`}
-                {' '}{assetPressureSentence}
-              </p>
-            </article>
-          </div>
-        </div>
 
-        <div className="example-panel">
-          <div className="example-copy">
-            <p className="eyebrow">In Euro übersetzt</p>
-            <h3>Aus {formatEuro(salaryExample)} Startgehalt würden nach Lohntrend {formatEuro(salaryToday)}.</h3>
-            <p>
-              Für denselben Lebensstandard reicht das nicht automatisch. Je nachdem,
-              was man kaufen will, müsste das Gehalt anders stark steigen.
-            </p>
-          </div>
-          <div className="example-grid">
-            <article>
-              <span>Gleicher Warenkorb</span>
-              <strong>{formatEuro(sameBasketSalary)}</strong>
-              <small>{formatEuro(salaryToday - sameBasketSalary)} Abstand zum Lohntrend</small>
-            </article>
-            <article>
-              <span>Gleiche Mietbelastung</span>
-              <strong>{formatEuro(sameRentSalary)}</strong>
-              <small>{formatEuro(salaryToday - sameRentSalary)} Abstand zum Lohntrend</small>
-            </article>
-            <article className="warning">
-              <span>Gleiche Wohnungskaufkraft</span>
-              <strong>{formatEuro(sameHomeSalary)}</strong>
-              <small>{formatEuro(salaryToday - sameHomeSalary)} Abstand zum Lohntrend</small>
-            </article>
-            <article className="warning">
-              <span>Gleiche Bauland-Kaufkraft</span>
-              <strong>{formatEuro(sameLandSalary)}</strong>
-              <small>{formatEuro(salaryToday - sameLandSalary)} Abstand zum Lohntrend</small>
-            </article>
-          </div>
-        </div>
+          <LazyChart height={360}>
+            {() => {
+              if (activeTab === 'overview') {
+                return (
+                  <EconomicChart
+                    data={selected.indexed}
+                    formatIndex={formatIndex}
+                    lines={lines}
+                    variant="indexed"
+                  />
+                )
+              }
 
-        <LazyChart height={340}>
-          {() => (
-            <EconomicChart
-              data={selected.indexed}
-              formatIndex={formatIndex}
-              lines={lines}
-              variant="indexed"
-            />
-          )}
-        </LazyChart>
-        <p className="chart-note">
-          Lesart: Die Linien sind bewusst auf denselben Startwert gesetzt. Das zeigt
-          Beziehungen, ersetzt aber keine absolute Einkommensverteilung nach Beruf,
-          Region oder Haushaltstyp. In langen Zeiträumen dominiert der Nominallohn
-          optisch stark; für Lebensstandard ist deshalb die Reallohnlinie wichtiger.
+              if (activeTab === 'power') {
+                return (
+                  <EconomicChart
+                    data={selected.purchasingPower}
+                    formatIndex={formatIndex}
+                    variant="purchasingPower"
+                  />
+                )
+              }
+
+              if (activeTab === 'productivity') {
+                return <EconomicChart data={selected.gap} formatIndex={formatIndex} variant="gap" />
+              }
+
+              if (activeTab === 'capital') {
+                return <EconomicChart data={selected.range} formatIndex={formatIndex} variant="capital" />
+              }
+
+              return <EconomicChart data={rankingBars} formatIndex={formatIndex} variant="ranking" />
+            }}
+          </LazyChart>
+        </div>
+      </section>
+
+      <section className="section insight-grid" aria-label="Kurzerklärung">
+        <article>
+          <TrendingDown size={22} aria-hidden="true" />
+          <span>Der Kern</span>
+          <strong>Reallohn ist nicht Vermögenszugang.</strong>
+          <p>Selbst wenn reale Löhne leicht steigen, können Haus und Grundstück relativ zum Einkommen schneller wegziehen.</p>
+        </article>
+        <article>
+          <BarChart3 size={22} aria-hidden="true" />
+          <span>Die faire Einordnung</span>
+          <strong>Ältere Generationen mussten auch verzichten.</strong>
+          <p>Der Tracker fragt nicht, ob früher alles einfach war. Er fragt, was der gleiche Verzicht heute noch kaufen kann.</p>
+        </article>
+        <article>
+          <RefreshCw size={22} aria-hidden="true" />
+          <span>Warum mehrere Zeiträume?</span>
+          <strong>Seit 1950 zeigt Geschichte, seit 2010 die heutige Hürde.</strong>
+          <p>Lange Reihen zeigen Strukturwandel. Jüngere Reihen sind methodisch belastbarer und für heutige Käufer direkter.</p>
+        </article>
+      </section>
+
+      <section className="section method" id="methodik">
+        <div className="section-heading">
+          <p className="eyebrow">Methodik</p>
+          <h2>Was der Tracker misst</h2>
+        </div>
+        <div className="method-grid">
+          {[
+            'Index 100 bedeutet: Startwert des gewählten Zeitraums.',
+            'Reallohn ist der inflationsbereinigte Lohn und damit Kaufkraft des Verdienstes.',
+            'Wohnungs- und Bauland-Kaufkraft rechnet Lohn gegen Vermögenspreise, nicht gegen Alltagspreise.',
+            'Produktivität ist nicht automatisch Lohn, zeigt aber den verteilbaren Output pro Arbeitsstunde.',
+            'Piketty/Zucman/WID liefern Verteilungskontext: Wenn Vermögen relativ zum Einkommen steigt, wird Besitz wichtiger.',
+            'Ältere Starts bleiben sichtbar, sind aber mit Methodenbruch und Proxy-Reihen zu lesen.',
+          ].map((item) => (
+            <div className="method-item" key={item}>
+              <Check size={18} aria-hidden="true" />
+              <span>{item}</span>
+            </div>
+          ))}
+        </div>
+        <p className="fineprint">
+          Datenstand: 04.06.2026. Lohn- und Verbraucherpreisdaten sind eng an Destatis-Jahresraten ausgerichtet.
+          Wohnen nutzt ab 2010 den vdp-Immobilienpreisindex; ältere Wohn- und Baulandwerte sind wegen eingeschränkter
+          Vergleichbarkeit vorsichtige Näherungen.
         </p>
-      </section>
-
-      <section className="section split">
-        <div className="section-heading">
-          <p className="eyebrow">In Dinge umgerechnet</p>
-          <h2>Was kann ein Gehalt kaufen?</h2>
-          <p>
-            Hier wird der nominale Lohn durch Preisindizes geteilt. Werte unter
-            100 heißen: Vom gleichen Gehaltsindex bekommt man weniger Warenkorb,
-            Miete, Wohnung oder Bauland als zu Beginn der gewählten Zeitspanne.
-          </p>
-        </div>
-        <LazyChart className="chart-shell compact" height={320}>
-          {() => (
-            <EconomicChart
-              data={selected.purchasingPower}
-              formatIndex={formatIndex}
-              variant="purchasingPower"
-            />
-          )}
-        </LazyChart>
-        <p className="chart-note">
-          Unter 100 heißt nicht „alles ist unleistbar“, sondern: Der Lohn ist langsamer
-          gestiegen als dieser konkrete Preisindex. Über 100 heißt: Gegenüber diesem
-          Preisindex hat der Lohn aufgeholt. Der Knackpunkt ist, dass Alltagspreise,
-          Mieten und Vermögenspreise nicht gleich laufen.
-        </p>
-      </section>
-
-      <section className="section" id="produktivitaet">
-        <div className="section-heading">
-          <p className="eyebrow">Warum sich das ungerecht anfühlt</p>
-          <h2>Produktiver, aber nicht entsprechend kaufkräftiger.</h2>
-          <p>
-            Produktivität ist nicht das Gleiche wie Lohn. Aber wenn pro Arbeitsstunde
-            mehr Wert entsteht und Reallöhne kaum mithalten, entsteht die zentrale
-            Verteilungsfrage: Wer bekommt den zusätzlichen Output?
-          </p>
-        </div>
-        <LazyChart height={320}>
-          {() => (
-            <EconomicChart
-              data={selected.gap}
-              formatIndex={formatIndex}
-              variant="gap"
-            />
-          )}
-        </LazyChart>
-        <div className="takeaway-band">
-          <strong>Der faire Kern der Aussage:</strong>
-          <span>
-            Nicht jede Produktivitätssteigerung wird automatisch Lohn. Aber wenn reale
-            Löhne kaum wachsen, während Output und Vermögenspreise steigen, verschiebt
-            sich Wohlstand weg von reiner Arbeit hin zu Besitz und Kapital.
-          </span>
-        </div>
-      </section>
-
-      <section className="section split">
-        <div className="section-heading">
-          <p className="eyebrow">Komplexere Ebene</p>
-          <h2>Kapital und Arbeit laufen nicht gleich.</h2>
-          <p>
-            Piketty und Zucman zeigen langfristig: Wenn Vermögen relativ zum
-            Einkommen steigt, wird Besitz wichtiger. Das erklärt nicht jede
-            Lohnentwicklung, ergänzt aber die Kaufkraftfrage: Wer kein Vermögen
-            besitzt, trifft steigendes Wohnen und Bauland härter.
-          </p>
-        </div>
-        <LazyChart className="chart-shell compact" height={320}>
-          {() => (
-            <EconomicChart
-              data={selected.range}
-              formatIndex={formatIndex}
-              variant="capital"
-            />
-          )}
-        </LazyChart>
-        <p className="chart-note">
-          Diese Ebene ist Verteilungskontext. Sie erklärt, warum steigende Assetpreise
-          für Menschen ohne Vermögen anders wirken als für Eigentümer.
-        </p>
-      </section>
-
-      <section className="section">
-        <div className="section-heading">
-          <p className="eyebrow">Rangliste</p>
-          <h2>Was ist seit {startYear} schneller gestiegen?</h2>
-        </div>
-        <LazyChart height={320}>
-          {() => (
-            <EconomicChart
-              data={rankingBars}
-              formatIndex={formatIndex}
-              variant="ranking"
-            />
-          )}
-        </LazyChart>
       </section>
 
       <section className="section sources" id="quellen">
         <div className="section-heading">
           <p className="eyebrow">Nachprüfbar</p>
           <h2>Quellen</h2>
-          <p>
-            Die Seite trennt harte amtliche Reihen, längere Proxy-Reihen und
-            Verteilungskontext. Das ist absichtlich etwas vorsichtig: Eine ehrliche
-            Langfristgrafik darf keine präzisen Jahreswerte vortäuschen, wo Reihen
-            methodisch wechseln.
-          </p>
+          <p>Politisch neutral heißt hier: Aussage, Datenreihe und Einschränkung bleiben getrennt.</p>
         </div>
         <div className="source-grid">
           {sources.map((source) => (
@@ -765,37 +540,6 @@ function App() {
             </a>
           ))}
         </div>
-      </section>
-
-      <section className="section method" id="methodik">
-        <div className="section-heading">
-          <p className="eyebrow">Methodik</p>
-          <h2>So liest man die Seite.</h2>
-        </div>
-        <div className="method-grid">
-          {[
-            'Index 100 bedeutet: Startwert des gewählten Zeitraums.',
-            'Reallohn ist der inflationsbereinigte Lohn und damit die Kaufkraft des Verdienstes.',
-            'Ein steigender Nominallohn kann real wenig bringen, wenn Preise gleichzeitig steigen.',
-            'Wohnungs- und Bauland-Kaufkraft rechnet Lohn gegen Vermögenspreise, nicht gegen Alltagspreise.',
-            'Produktivität erklärt nicht automatisch Löhne, zeigt aber den verteilbaren Output pro Arbeitsstunde.',
-            'Zeitreihen ab 2010 sind am belastbarsten; ältere Starts sind als Langfrist-Orientierung mit Methodenbruch zu lesen.',
-          ].map((item) => (
-            <div className="method-item" key={item}>
-              <Check size={18} aria-hidden="true" />
-              <span>{item}</span>
-            </div>
-          ))}
-        </div>
-        <p className="fineprint">
-          Datenstand: 04.06.2026. Nach kritischer Prüfung sind die Lohn- und
-          Verbraucherpreisdaten eng an Destatis-Jahresraten ausgerichtet. Wohnen
-          nutzt ab 2010 den vdp-Immobilienpreisindex; ältere Wohn- und Baulandwerte
-          sind wegen eingeschränkter Vergleichbarkeit der Reihen vorsichtige
-          Näherungen. Für
-          wissenschaftliche oder journalistische Verwendung müssen die verlinkten
-          Originaltabellen direkt aktualisiert und dokumentiert werden.
-        </p>
       </section>
     </main>
   )

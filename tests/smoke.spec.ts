@@ -6,11 +6,13 @@ test('renders the dashboard without horizontal overflow', async ({ page }) => {
   })
   await page.goto('/')
 
-  await expect(page.getByRole('heading', { name: /Früher sparen. Heute reicht sparen oft nicht mehr/ })).toBeVisible()
-  await expect(page.getByText(/Wir konnten früher auch nicht in den Urlaub fahren/)).toBeVisible()
-  await expect(page.getByRole('heading', { name: /Was passiert mit dem Gehalt/ })).toBeVisible()
-  await expect(page.getByText('Ergebnis lesen')).toBeVisible()
-  await expect(page.getByRole('heading', { name: /Produktiver, aber nicht entsprechend kaufkräftiger/ })).toBeVisible()
+  await expect(page.getByText('Live-Tracker')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Nein' })).toBeVisible()
+  await expect(page.getByText(/Ein Gehalt kauft heute weniger Einstieg/)).toBeVisible()
+  await expect(page.getByText('Aufbaukraft seit 2010')).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Früher war Sparen hart/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Diagramme als Tabs' })).toBeVisible()
+  await expect(page.getByRole('tab', { name: 'Kaufkraft' })).toHaveAttribute('aria-selected', 'true')
   await expect(page.getByRole('heading', { name: 'Quellen' })).toBeVisible()
 
   await page.getByRole('button', { name: 'Dark Mode aktivieren' }).click()
@@ -18,7 +20,8 @@ test('renders the dashboard without horizontal overflow', async ({ page }) => {
 
   await page.getByRole('button', { name: 'Seit 1970' }).click()
   await expect(page.getByText(/Disclaimer für 1970 bis 2024/)).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Was ist seit 1970 schneller gestiegen?' })).toBeVisible()
+  await page.getByRole('tab', { name: 'Ranking' }).click()
+  await expect(page.getByText('Was im gewählten Zeitraum am stärksten gestiegen ist.')).toBeVisible()
 
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
   expect(overflow).toBeLessThanOrEqual(2)
