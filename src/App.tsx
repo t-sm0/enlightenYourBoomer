@@ -149,6 +149,34 @@ const sources: Source[] = [
       'WID bündelt historische Einkommens- und Vermögensdaten; relevant für Vermögen relativ zu Einkommen.',
     url: 'https://wid.world/wid-world-2/',
   },
+  {
+    tag: 'Vermögen',
+    name: 'Bundesbank: PHF-Vermögensbefragung 2023',
+    detail:
+      'Haushalte verfügten 2023 durchschnittlich über rund 324.800 Euro Nettovermögen; der Median lag deutlich niedriger.',
+    url: 'https://www.bundesbank.de/de/aufgaben/themen/bundesbank-studie-vermoegen-in-deutschland-steigen-nominal-gehen-aber-real-zurueck-ungleichheit-bleibt-unveraendert-954622',
+  },
+  {
+    tag: 'Steuer',
+    name: 'BMF: Einkommensteuertarif 2026',
+    detail:
+      'Grundfreibetrag 12.348 Euro, 42-Prozent-Zone ab 69.879 Euro, 45-Prozent-Zone ab 277.826 Euro zu versteuerndem Einkommen.',
+    url: 'https://www.bundesfinanzministerium.de/Content/DE/Standardartikel/Themen/Steuern/das-aendert-sich-2026.html',
+  },
+  {
+    tag: 'Median',
+    name: 'Destatis: Bruttojahresverdienste 2024',
+    detail:
+      'Der mittlere Bruttojahresverdienst von Vollzeitbeschäftigten lag 2024 bei 52.159 Euro; das oberste Prozent begann bei 213.286 Euro.',
+    url: 'https://www.destatis.de/DE/Presse/Pressemitteilungen/2025/04/PD25_134_621.html',
+  },
+  {
+    tag: 'Tarifhistorie',
+    name: 'BMF: Datensammlung zur Steuerpolitik 2026',
+    detail:
+      'Historische Tarifformeln und Eckwerte des Einkommensteuertarifs, u. a. Grundfreibetrag und Beginn der 42-Prozent-Zone.',
+    url: 'https://www.bundesfinanzministerium.de/Content/DE/Downloads/Broschueren_Bestellservice/datensammlung-zur-steuerpolitik-2026.pdf?__blob=publicationFile&v=4',
+  },
 ]
 
 const partyProfiles: Record<PartyKey, PartyProfile> = {
@@ -314,6 +342,43 @@ const liveSignals = [
   },
 ]
 
+const wealthCards = [
+  {
+    label: 'Nettovermögen gesamt',
+    value: '~13,4 Bio. Euro',
+    note: 'Näherung: 324.800 Euro Bundesbank-Mittelwert mal rund 41,2 Mio. Haushalte',
+  },
+  {
+    label: 'Durchschnitt je Haushalt',
+    value: '324.800 Euro',
+    note: 'Bundesbank PHF 2023; nominal gestiegen, real gegenüber 2021 gesunken',
+  },
+  {
+    label: 'Median je Haushalt',
+    value: '103.200 Euro',
+    note: 'Die Hälfte der Haushalte liegt darunter, die andere darüber',
+  },
+  {
+    label: 'Obere 10%',
+    value: '~54%',
+    note: 'Anteil am Nettovermögen laut PHF-Verteilungsbild',
+  },
+]
+
+const taxBands = [
+  { label: 'Grundfreibetrag', value: '12.348 Euro', note: 'steuerfrei, 2026' },
+  { label: 'Progression', value: '12.349-69.878 Euro', note: 'Grenzsteuersatz steigt von 14% bis 42%' },
+  { label: '42%-Satz', value: 'ab 69.879 Euro', note: 'zu versteuerndes Einkommen, nicht Brutto' },
+  { label: '45%-Satz', value: 'ab 277.826 Euro', note: 'sogenannte Reichensteuer' },
+]
+
+const taxTimeline = [
+  { year: 2005, threshold: 52152, median: 33000, ratio: 1.58 },
+  { year: 2010, threshold: 52882, median: 37000, ratio: 1.43 },
+  { year: 2018, threshold: 54950, median: 45000, ratio: 1.22 },
+  { year: 2026, threshold: 69879, median: 54066, ratio: 1.29 },
+]
+
 const interpolate = (start: AnchorPoint, end: AnchorPoint, year: number, key: MetricKey) => {
   const startValue = start[key] ?? 0
   const endValue = end[key] ?? startValue
@@ -440,6 +505,7 @@ function App() {
           </a>
           <div className="nav-links">
             <a href="#parteien">Parteien</a>
+            <a href="#vermoegen-steuern">Steuern</a>
             <a href="#daten">Daten</a>
             <a href="#quellen">Quellen</a>
           </div>
@@ -587,6 +653,92 @@ function App() {
           <strong>Die Seite lädt Charts erst im Datenarchiv.</strong>
           <p>Der politische Tracker bleibt leicht. Diagramme werden nur geladen, wenn du sie wirklich öffnest.</p>
         </article>
+      </section>
+
+      <section className="section wealth-tax-section" id="vermoegen-steuern">
+        <div className="section-heading">
+          <p className="eyebrow">Vermögen und Progression</p>
+          <h2>Deutschland ist reich. Die Frage ist: Wer baut mit Gehalt noch Vermögen auf?</h2>
+          <p>
+            Der entscheidende Unterschied ist nicht nur Einkommensteuer. Deutschland hat sehr viel
+            privates Vermögen, aber es ist deutlich ungleicher verteilt als Arbeitseinkommen.
+            Gleichzeitig rückt der 42%-Grenzsteuersatz für gut qualifizierte Arbeitnehmer viel näher
+            an den normalen Vollzeitverdienst heran, als der Begriff „Spitzensteuersatz“ vermuten lässt.
+          </p>
+        </div>
+
+        <div className="wealth-tax-grid">
+          <div className="wealth-panel">
+            <div className="panel-heading">
+              <span>Gesamtvermögen</span>
+              <strong>Vermögen ist da, aber nicht gleich verteilt.</strong>
+            </div>
+            <div className="wealth-card-grid">
+              {wealthCards.map((card) => (
+                <article key={card.label}>
+                  <span>{card.label}</span>
+                  <strong>{card.value}</strong>
+                  <p>{card.note}</p>
+                </article>
+              ))}
+            </div>
+            <p className="source-note">
+              Lesart: Das Gesamtvermögen ist eine grobe Rechnung aus Bundesbank-PHF-Mittelwert
+              und Haushaltszahl. PHF unterschätzt sehr große Vermögen tendenziell, bleibt aber
+              eine der wichtigsten amtlichen Verteilungsquellen.
+            </p>
+          </div>
+
+          <div className="tax-panel">
+            <div className="panel-heading">
+              <span>Einkommensteuer 2026</span>
+              <strong>Progression trifft Arbeit, nicht vorhandenes Vermögen.</strong>
+            </div>
+            <div className="tax-band-grid">
+              {taxBands.map((band) => (
+                <article key={band.label}>
+                  <span>{band.label}</span>
+                  <strong>{band.value}</strong>
+                  <p>{band.note}</p>
+                </article>
+              ))}
+            </div>
+            <div className="tax-warning">
+              <strong>Wichtig:</strong>
+              <span>
+                Die Schwellen beziehen sich auf zu versteuerndes Einkommen. Bruttoverdienst,
+                Sozialabgaben, Werbungskosten und Sonderausgaben liegen davor. Trotzdem zeigt
+                die Einordnung: 69.879 Euro zvE ist nicht „reich“ im Vermögenssinn.
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="tax-history-panel">
+          <div className="panel-heading">
+            <span>Über die Zeit</span>
+            <strong>Der 42%-Satz war lange nahe an derselben Euro-Stelle. Erst zuletzt wurde stärker nachgezogen.</strong>
+          </div>
+          <div className="tax-timeline">
+            {taxTimeline.map((point) => (
+              <article key={point.year}>
+                <span>{point.year}</span>
+                <strong>{point.threshold.toLocaleString('de-DE')} Euro</strong>
+                <p>Beginn 42%-Zone</p>
+                <div className="ratio-bar" aria-hidden="true">
+                  <i style={{ width: `${Math.min(point.ratio / 1.7, 1) * 100}%` }} />
+                </div>
+                <small>ca. {formatIndex(point.ratio)}x Median-Brutto*</small>
+              </article>
+            ))}
+          </div>
+          <p className="source-note">
+            *Die Medianreihe ist für ältere Jahre als Orientierung zurückgerechnet; 2024/2025 nutzt
+            veröffentlichte Median-Bruttoverdienste. Exakte Steuerbelastung braucht immer das
+            individuelle zu versteuernde Einkommen. Die Aussage bleibt: Lohnarbeit wird progressiv
+            besteuert, während bestehendes Vermögen und Wertzuwächse anders erfasst werden.
+          </p>
+        </div>
       </section>
 
       <section className="section data-section" id="daten">

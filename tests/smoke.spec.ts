@@ -13,6 +13,9 @@ test('renders the dashboard without horizontal overflow', async ({ page }) => {
   await expect(page.getByText('Energieentlastung', { exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: /Wer verspricht was gegen Kaufkraftverlust/ })).toBeVisible()
   await expect(page.getByRole('tab', { name: 'Aktuelle Regierung' })).toHaveAttribute('aria-selected', 'true')
+  await expect(page.getByRole('heading', { name: /Deutschland ist reich/ })).toBeVisible()
+  await expect(page.getByText('~13,4 Bio. Euro')).toBeVisible()
+  await expect(page.locator('.tax-band-grid').getByText('ab 69.879 Euro', { exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Quellen' })).toBeVisible()
 
   await page.getByRole('button', { name: 'Dark Mode aktivieren' }).click()
